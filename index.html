@@ -2,7 +2,8 @@
 <html lang="zh-TW">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <!-- 1. Viewport 鎖定不許縮放 -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no">
   <title>StageNote - 駐唱看詞助手</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/lucide@latest"></script>
@@ -10,6 +11,10 @@
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
   <style>
+    /* 2. 禁用所有 Touch 雙擊放大與手勢縮放 */
+    *, html, body {
+      touch-action: manipulation;
+    }
     /* 隱藏和弦切換 CSS */
     body.hide-chords .chord-label {
       display: none !important;
@@ -252,6 +257,16 @@
   </div>
 
   <script>
+    // 3. 全局攔截 Safari / Chrome 觸控雙擊縮放 (Double-tap zoom prevention)
+    let lastTouchEnd = 0;
+    document.addEventListener('touchend', function (event) {
+      const now = (new Date()).getTime();
+      if (now - lastTouchEnd <= 300) {
+        event.preventDefault(); // 攔截 300ms 內的第二下觸控，阻止雙擊放大
+      }
+      lastTouchEnd = now;
+    }, false);
+
     let songs = [];
     let tabs = [0];
     let activeTabIndex = 0;
