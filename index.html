@@ -2,8 +2,10 @@
 <html lang="zh-TW">
 <head>
   <meta charset="UTF-8">
-  <!-- Viewport 鎖定不許縮放 -->
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no">
+  <!-- Viewport 鎖定不許縮放 + 全螢幕 WebApp 設定 -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <title>StageNote - 駐唱看詞助手</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/lucide@latest"></script>
@@ -36,6 +38,10 @@
       resize: none;
       overflow-y: hidden;
       min-height: 500px;
+    }
+    /* 虛擬全螢幕樣式 (iOS Safari 備用) */
+    body.virtual-fullscreen header {
+      display: none !important;
     }
   </style>
 </head>
@@ -276,13 +282,18 @@
       lastTouchEnd = now;
     }, false);
 
-    // 切換全螢幕邏輯
+    // 智能全螢幕相容邏輯 (支援原生全螢幕 + iOS 虛擬沉浸模式)
     function toggleFullScreen() {
-      if (!document.fullscreenElement && !document.webkitFullscreenElement) {
-        if (document.documentElement.requestFullscreen) {
-          document.documentElement.requestFullscreen();
-        } else if (document.documentElement.webkitRequestFullscreen) {
-          document.documentElement.webkitRequestFullscreen();
+      const doc = document.documentElement;
+      const isFull = document.fullscreenElement || document.webkitFullscreenElement;
+
+      if (!isFull) {
+        if (doc.requestFullscreen) {
+          doc.requestFullscreen().catch(() => enableVirtualFullScreen());
+        } else if (doc.webkitRequestFullscreen) {
+          doc.webkitRequestFullscreen();
+        } else {
+          enableVirtualFullScreen();
         }
       } else {
         if (document.exitFullscreen) {
@@ -290,7 +301,13 @@
         } else if (document.webkitExitFullscreen) {
           document.webkitExitFullscreen();
         }
+        document.body.classList.remove('virtual-fullscreen');
       }
+    }
+
+    function enableVirtualFullScreen() {
+      document.body.classList.toggle('virtual-fullscreen');
+      window.scrollTo(0, 0);
     }
 
     let songs = [];
