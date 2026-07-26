@@ -62,13 +62,19 @@
     </header>
 
     <div class="bg-slate-900 border border-slate-800 rounded-xl p-4 mb-6 shadow-lg">
-      <div class="flex justify-between items-start mb-3">
+      <div class="flex justify-between items-start mb-3 gap-2">
         <div>
           <h2 id="song-title" class="text-2xl font-bold text-white">載入中...</h2>
           <p id="song-artist" class="text-slate-400 text-sm">-</p>
         </div>
-        <select id="song-select" onchange="switchSong(this.value)" class="bg-slate-800 text-slate-200 text-sm border border-slate-700 rounded-lg p-2 focus:outline-none">
-        </select>
+        <div class="flex items-center gap-1.5">
+          <button onclick="toggleSearchModal()" class="bg-slate-800 hover:bg-slate-700 text-slate-200 p-2 rounded-lg border border-slate-700 active:scale-95 transition flex items-center gap-1 text-xs">
+            <i data-lucide="search" class="w-4 h-4 text-blue-400"></i>
+            <span>搜尋</span>
+          </button>
+          <select id="song-select" onchange="switchSong(this.value)" class="bg-slate-800 text-slate-200 text-sm border border-slate-700 rounded-lg p-2 focus:outline-none max-w-[140px] truncate">
+          </select>
+        </div>
       </div>
       <div class="flex flex-wrap gap-2 text-xs font-mono">
         <span class="bg-slate-800 px-2.5 py-1 rounded border border-slate-700">Key: <b id="song-key" class="text-yellow-400">-</b></span>
@@ -101,7 +107,12 @@
           <span class="shrink-0 bg-red-600 text-white text-[10px] font-black px-1.5 py-0.5 rounded tracking-widest">LIVE</span>
           <h2 id="live-title" class="text-lg font-bold text-white truncate">歌曲名稱</h2>
         </div>
-        <span id="live-info" class="shrink-0 text-xs font-mono text-zinc-400 bg-zinc-900 px-2 py-1 rounded border border-zinc-800">Key: C | BPM: 120</span>
+        <div class="flex items-center gap-2">
+          <button onclick="toggleSearchModal()" class="bg-zinc-900 hover:bg-zinc-800 text-zinc-300 p-1.5 rounded-lg border border-zinc-800 active:scale-95 transition">
+            <i data-lucide="search" class="w-4 h-4 text-blue-400"></i>
+          </button>
+          <span id="live-info" class="shrink-0 text-xs font-mono text-zinc-400 bg-zinc-900 px-2 py-1 rounded border border-zinc-800">Key: C | BPM: 120</span>
+        </div>
       </div>
 
       <div class="flex items-center justify-between gap-2">
@@ -116,4 +127,85 @@
           <button onclick="toggleChords()" class="bg-zinc-900 hover:bg-zinc-800 active:scale-95 text-zinc-300 px-2 py-1.5 rounded-lg text-xs border border-zinc-800 transition">
             <span id="live-chord-toggle-text">和弦: 顯</span>
           </button>
-          <button onclick="toggleTags()" class="bg-zinc-900 hover:bg-zinc-800 active:scale-95 text-zinc-300
+          <button onclick="toggleTags()" class="bg-zinc-900 hover:bg-zinc-800 active:scale-95 text-zinc-300 px-2 py-1.5 rounded-lg text-xs border border-zinc-800 transition">
+            <span id="live-tag-toggle-text">標記: 顯</span>
+          </button>
+          <button id="live-scroll-btn" onclick="toggleScroll()" class="bg-blue-600 hover:bg-blue-500 active:scale-95 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition">
+            開始滾動
+          </button>
+          <button onclick="exitLiveMode()" class="bg-zinc-800 hover:bg-zinc-700 active:scale-95 text-zinc-300 px-2.5 py-1.5 rounded-lg text-xs border border-zinc-700 transition">
+            退出
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div id="live-lyrics-container" class="flex-1 space-y-8 text-3xl font-bold tracking-wide text-white pb-60">
+    </div>
+  </div>
+
+  <div id="search-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-start justify-center p-4 pt-16">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-md p-4 flex flex-col gap-3 shadow-2xl">
+      <div class="flex justify-between items-center border-b border-slate-800 pb-2">
+        <div class="flex items-center gap-2 text-blue-400">
+          <i data-lucide="search" class="w-5 h-5"></i>
+          <h3 class="text-base font-bold text-white">搜尋曲目</h3>
+        </div>
+        <button onclick="toggleSearchModal()" class="text-slate-400 hover:text-white p-1"><i data-lucide="x"></i></button>
+      </div>
+
+      <div class="relative">
+        <input id="search-input" type="text" oninput="filterSongs()" placeholder="輸入歌名或歌手關鍵字..." class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500">
+      </div>
+
+      <div id="search-results" class="max-h-60 overflow-y-auto divide-y divide-slate-800/60 rounded-xl bg-slate-950 border border-slate-800 p-1">
+      </div>
+    </div>
+  </div>
+
+  <div id="edit-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-lg p-5 flex flex-col gap-4 max-h-[92vh]">
+      <div class="flex justify-between items-center border-b border-slate-800 pb-2">
+        <h3 class="text-lg font-bold text-white">編輯歌曲與註記</h3>
+        <button onclick="toggleEditModal()" class="text-slate-400 hover:text-white"><i data-lucide="x"></i></button>
+      </div>
+
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="text-xs text-slate-400 mb-1 block">歌名</label>
+          <input id="input-title" type="text" class="w-full bg-slate-800 border border-slate-700 rounded-lg p-2 text-sm text-white focus:outline-none">
+        </div>
+        <div>
+          <label class="text-xs text-slate-400 mb-1 block">歌手</label>
+          <input id="input-artist" type="text" class="w-full bg-slate-800 border border-slate-700 rounded-lg p-2 text-sm text-white focus:outline-none">
+        </div>
+      </div>
+
+      <div class="grid grid-cols-3 gap-2">
+        <div>
+          <label class="text-xs text-slate-400 mb-1 block">Key</label>
+          <input id="input-key" type="text" class="w-full bg-slate-800 border border-slate-700 rounded-lg p-2 text-sm text-white focus:outline-none">
+        </div>
+        <div>
+          <label class="text-xs text-slate-400 mb-1 block">BPM</label>
+          <input id="input-bpm" type="text" class="w-full bg-slate-800 border border-slate-700 rounded-lg p-2 text-sm text-white focus:outline-none">
+        </div>
+        <div>
+          <label class="text-xs text-slate-400 mb-1 block">Capo</label>
+          <input id="input-capo" type="text" class="w-full bg-slate-800 border border-slate-700 rounded-lg p-2 text-sm text-white focus:outline-none">
+        </div>
+      </div>
+
+      <div>
+        <label class="text-xs text-blue-400 mb-1.5 block font-bold">⚡ 點擊快速插入演出標記：</label>
+        <div class="flex flex-wrap gap-1.5 max-h-24 overflow-y-auto p-1 bg-slate-950 rounded-lg border border-slate-800">
+          <button onclick="insertTag('🫁 換氣')" class="bg-slate-800 hover:bg-slate-700 text-xs px-2 py-1 rounded text-slate-200 border border-slate-700">🫁 換氣</button>
+          <button onclick="insertTag('🎤 Mic拉遠')" class="bg-slate-800 hover:bg-slate-700 text-xs px-2 py-1 rounded text-slate-200 border border-slate-700">🎤 Mic拉遠</button>
+          <button onclick="insertTag('🎤 Mic靠近')" class="bg-slate-800 hover:bg-slate-700 text-xs px-2 py-1 rounded text-slate-200 border border-slate-700">🎤 Mic靠近</button>
+          <button onclick="insertTag('🔥 情緒')" class="bg-slate-800 hover:bg-slate-700 text-xs px-2 py-1 rounded text-slate-200 border border-slate-700">🔥 情緒</button>
+          <button onclick="insertTag('❤️ 微笑')" class="bg-slate-800 hover:bg-slate-700 text-xs px-2 py-1 rounded text-slate-200 border border-slate-700">❤️ 微笑</button>
+          <button onclick="insertTag('👀 看觀眾')" class="bg-slate-800 hover:bg-slate-700 text-xs px-2 py-1 rounded text-slate-200 border border-slate-700">👀 看觀眾</button>
+          <button onclick="insertTag('🤝 互動')" class="bg-slate-800 hover:bg-slate-700 text-xs px-2 py-1 rounded text-slate-200 border border-slate-700">🤝 互動</button>
+          <button onclick="insertTag('🎸 吉他Solo')" class="bg-slate-800 hover:bg-slate-700 text-xs px-2 py-1 rounded text-slate-200 border border-slate-700">🎸 Solo</button>
+          <button onclick="insertTag('🥁 鼓Fill')" class="bg-slate-800 hover:bg-slate-700 text-xs px-2 py-1 rounded text-slate-200 border border-slate-700">🥁 鼓Fill</button>
+          <button onclick="insertTag('⬆️ 升Key')" class="
