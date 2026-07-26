@@ -115,7 +115,7 @@
         </div>
       </div>
 
-      <!-- 右側：工具欄（長按標記即可刪除） -->
+      <!-- 右側：工具欄 -->
       <div class="w-full md:w-6/12 lg:w-5/12 bg-slate-900 border border-slate-800 rounded-2xl p-6 flex flex-col gap-5 shadow-2xl sticky top-4 h-fit z-30 shrink-0">
         <div class="flex justify-between items-center border-b border-slate-800 pb-3">
           <h3 class="text-lg font-bold text-white flex items-center gap-2">
@@ -350,6 +350,7 @@
             key: "C",
             prefKey: "C",
             bpm: "120",
+            viewCount: 1,
             lyrics: `作詞：潘雲安  作曲：潘雲安\n\n[C]我肯定在幾百年前就說過愛你\n\n[G]只是你忘了\n\n[Am]我也沒想起\n\n⭐ 重點\n\n[F]我肯定在幾百年前就說過愛你`
           }];
           db.ref('songs').set(songs);
@@ -361,7 +362,31 @@
       });
     };
 
-    // 渲染演出標記按鈕清單（支援長按與右鍵刪除）
+    // 更新下拉選單（按最常使用次數 ViewCount 排序）
+    function updateSongSelectOptions() {
+      const select = document.getElementById('song-select');
+      
+      // 將歌曲附加原始 index 後依據 viewCount 進行降序排序
+      const sortedSongsWithIndex = songs.map((s, idx) => ({ ...s, originalIndex: idx }))
+        .sort((a, b) => (b.viewCount || 0) - (a.viewCount || 0));
+
+      const optionsHtml = sortedSongsWithIndex.map((s, i) => {
+        const prefix = i === 0 && (s.viewCount || 0) > 0 ? '🔥 ' : '';
+        return `<option value="${s.originalIndex}">${prefix}${s.title}</option>`;
+      }).join('') + '<option value="new">+ 新增歌曲</option>';
+
+      select.innerHTML = optionsHtml;
+    }
+
+    // 增加了點擊使用次數統計 (+1)
+    function incrementSongViewCount(index) {
+      if (songs[index]) {
+        songs[index].viewCount = (songs[index].viewCount || 0) + 1;
+        db.ref(`songs/${index}/viewCount`).set(songs[index].viewCount);
+      }
+    }
+
+    // 渲染演出標記按鈕清單
     function renderTagsList() {
       const container = document.getElementById('tags-list-container');
       container.innerHTML = customTags.map((tag, idx) => `
@@ -382,13 +407,12 @@
     let longPressTimer = null;
     let isLongPressTriggered = false;
 
-    // 平板/手機觸控長按事件發動
     function handleTagTouchStart(tag, index) {
       isLongPressTriggered = false;
       longPressTimer = setTimeout(() => {
         isLongPressTriggered = true;
         confirmDeleteCustomTag(tag, index);
-      }, 500); // 500毫秒視為長按
+      }, 500);
     }
 
     function handleTagTouchEnd() {
@@ -398,7 +422,6 @@
       }
     }
 
-    // 滑鼠點擊
     function handleTagClick(tag, index) {
       if (isLongPressTriggered) {
         isLongPressTriggered = false;
@@ -407,13 +430,11 @@
       insertTag(tag);
     }
 
-    // 電腦滑鼠右鍵點擊觸發刪除
     function handleTagContextMenu(e, tag, index) {
       e.preventDefault();
       confirmDeleteCustomTag(tag, index);
     }
 
-    // 刪除確認彈窗
     function confirmDeleteCustomTag(tag, index) {
       if (confirm(`確定要刪除標記 『${tag}』 嗎？`)) {
         customTags.splice(index, 1);
@@ -421,7 +442,6 @@
       }
     }
 
-    // 新增自訂標記
     function addCustomTag() {
       const input = document.getElementById('custom-tag-input');
       const newTag = input.value.trim();
@@ -565,11 +585,14 @@
       const query = document.getElementById('search-input').value.toLowerCase().trim();
       const resultsContainer = document.getElementById('search-results');
       
-      const filtered = songs.map((song, index) => ({ song, index })).filter(item => {
-        const title = (item.song.title || '').toLowerCase();
-        const artist = (item.song.artist || '').toLowerCase();
-        return title.includes(query) || artist.includes(query);
-      });
+      // 按使用次數排序後的搜尋結果
+      const filtered = songs.map((song, index) => ({ song, index }))
+        .sort((a, b) => (b.song.viewCount || 0) - (a.song.viewCount || 0))
+        .filter(item => {
+          const title = (item.song.title || '').toLowerCase();
+          const artist = (item.song.artist || '').toLowerCase();
+          return title.includes(query) || artist.includes(query);
+        });
 
       if (filtered.length === 0) {
         resultsContainer.innerHTML = `<div class="p-4 text-center text-xs text-slate-500">找不到相符歌曲</div>`;
@@ -588,6 +611,7 @@
     }
 
     function selectSearchResult(index) {
+      incrementSongViewCount(index);
       tabs[activeTabIndex] = index;
       renderTabs();
       renderSong(songs[index]);
@@ -612,8 +636,8 @@
       showTags = !showTags;
       document.body.classList.toggle('hide-tags', !showTags);
 
-      const normalText = document.getElementById('tag-toggle-text');
-      const liveText = document.getElementById('live-tag-toggle-text');
+      const normalText = document.getElementById('chord-toggle-text');
+      const liveText = document.getElementById('live-chord-toggle-text');
 
       const label = showTags ? '標記: 顯' : '標記: 隱';
       if (normalText) normalText.innerText = label;
@@ -632,16 +656,12 @@
       }
     }
 
-    function updateSongSelectOptions() {
-      const select = document.getElementById('song-select');
-      select.innerHTML = songs.map((s, idx) => `<option value="${idx}">${s.title}</option>`).join('') + '<option value="new">+ 新增歌曲</option>';
-    }
-
     function switchSong(value) {
       if (value === 'new') {
         openNewSongModal();
       } else {
         const index = parseInt(value);
+        incrementSongViewCount(index);
         tabs[activeTabIndex] = index;
         renderTabs();
         renderSong(songs[index]);
@@ -673,7 +693,6 @@
         const trimmed = line.trim();
         const hasEmoji = /[\u{1F300}-\u{1F9FF}]/u.test(trimmed);
         
-        // 解析所有演出標記
         const isTag = customTags.some(tag => trimmed.includes(tag.replace(/[\u{1F300}-\u{1F9FF}]/u, '').trim()));
 
         if ((hasEmoji || isTag) && !trimmed.includes('[')) {
@@ -795,8 +814,19 @@
       const bpm = document.getElementById('input-bpm').value || '-';
       const lyrics = document.getElementById('input-lyrics').value || '';
 
-      const updatedSong = { id: 'song-' + Date.now(), title, artist, key, prefKey, bpm, lyrics };
       const currentSongIndex = tabs[activeTabIndex];
+      const currentViewCount = (songs[currentSongIndex] && songs[currentSongIndex].viewCount) || 0;
+
+      const updatedSong = { 
+        id: 'song-' + Date.now(), 
+        title, 
+        artist, 
+        key, 
+        prefKey, 
+        bpm, 
+        lyrics,
+        viewCount: currentViewCount
+      };
 
       if (document.getElementById('song-select').value !== 'new' && songs[currentSongIndex]) {
         songs[currentSongIndex] = updatedSong;
