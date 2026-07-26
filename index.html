@@ -163,6 +163,7 @@
             <span class="bg-stone-950 px-3 py-1 rounded-lg border border-stone-800 text-stone-400">原 Key: <b id="song-key" class="text-amber-300/90 font-normal">-</b></span>
             <span class="bg-stone-950 px-3 py-1 rounded-lg border border-stone-800 text-stone-400">常用 Key: <b id="song-pref-key" class="text-emerald-300/90 font-normal">-</b></span>
             <span class="bg-stone-950 px-3 py-1 rounded-lg border border-stone-800 text-stone-400">BPM: <b id="song-bpm" class="text-stone-300 font-normal">-</b></span>
+            <span class="bg-stone-950 px-3 py-1 rounded-lg border border-stone-800 text-stone-400">時長: <b id="song-duration-display" class="text-amber-200/80 font-normal">-</b></span>
           </div>
         </div>
 
@@ -194,20 +195,25 @@
           </div>
         </div>
 
-        <div class="grid grid-cols-3 gap-2.5">
+        <!-- Key 選單 & BPM & 歌曲時長 -->
+        <div class="grid grid-cols-4 gap-2">
           <div>
             <label class="text-[11px] font-serif-tc text-stone-400 mb-1.5 block">原 Key</label>
-            <select id="input-key" onchange="autoSaveField()" class="w-full bg-stone-950 border border-stone-800 rounded-xl px-2.5 py-2 text-sm font-bold text-amber-300/90 focus:outline-none focus:border-stone-600 transition">
+            <select id="input-key" onchange="autoSaveField()" class="w-full bg-stone-950 border border-stone-800 rounded-xl px-2 py-2 text-xs font-bold text-amber-300/90 focus:outline-none focus:border-stone-600 transition">
             </select>
           </div>
           <div>
             <label class="text-[11px] font-serif-tc text-stone-400 mb-1.5 block">常用 Key</label>
-            <select id="input-pref-key" onchange="autoSaveField()" class="w-full bg-stone-950 border border-stone-800 rounded-xl px-2.5 py-2 text-sm font-bold text-emerald-300/90 focus:outline-none focus:border-stone-600 transition">
+            <select id="input-pref-key" onchange="autoSaveField()" class="w-full bg-stone-950 border border-stone-800 rounded-xl px-2 py-2 text-xs font-bold text-emerald-300/90 focus:outline-none focus:border-stone-600 transition">
             </select>
           </div>
           <div>
             <label class="text-[11px] font-serif-tc text-stone-400 mb-1.5 block">BPM</label>
-            <input id="input-bpm" type="text" placeholder="120" oninput="autoSaveField()" class="w-full bg-stone-950 border border-stone-800 rounded-xl px-2.5 py-2 text-sm font-bold text-stone-200 focus:outline-none focus:border-stone-600 transition">
+            <input id="input-bpm" type="text" placeholder="120" oninput="autoSaveField()" class="w-full bg-stone-950 border border-stone-800 rounded-xl px-2 py-2 text-xs font-bold text-stone-200 focus:outline-none focus:border-stone-600 transition">
+          </div>
+          <div>
+            <label class="text-[11px] font-serif-tc text-stone-400 mb-1.5 block">時長</label>
+            <input id="input-duration" type="text" placeholder="04:00" oninput="autoSaveField()" class="w-full bg-stone-950 border border-stone-800 rounded-xl px-2 py-2 text-xs font-bold text-amber-200/90 font-mono focus:outline-none focus:border-stone-600 transition">
           </div>
         </div>
 
@@ -259,11 +265,11 @@
           <h2 id="live-title" class="text-3xl md:text-4xl font-serif-tc font-black text-stone-100 truncate tracking-wide">歌曲名稱</h2>
         </div>
         
-        <!-- 大幅放大的 Key & BPM 面板 + 現場時鐘與倒數計時器 -->
+        <!-- 大幅放大的 Key & BPM 面板 + 現場時鐘與自動讀取時長倒數 -->
         <div class="shrink-0 flex items-center gap-2">
           <div class="text-right hidden sm:block font-mono bg-stone-900/80 px-3 py-1.5 rounded-xl border border-stone-800">
             <span id="live-clock" class="text-xs text-stone-400 block">00:00:00</span>
-            <span id="live-timer" onclick="setTimerMinutes()" class="text-amber-300/90 text-xs font-bold cursor-pointer hover:underline">⏱️ 04:00</span>
+            <span id="live-timer" class="text-amber-300/90 text-xs font-bold block">⏱️ 04:00</span>
           </div>
 
           <span id="live-info" class="text-base md:text-xl font-mono font-medium text-stone-200 bg-stone-900 px-4 py-2 rounded-2xl border border-stone-800 shadow-xl tracking-wide block">
@@ -366,7 +372,7 @@
 
     // 移調與計時器變數
     let transposeOffset = 0;
-    let timerSeconds = 240; // 預設 4 分鐘 (240秒)
+    let timerSeconds = 240;
     let initialTimerSeconds = 240;
     let timerInterval = null;
 
@@ -388,7 +394,19 @@
       "Am", "A#m / Bbm", "Bm", "Cm", "C#m", "Dm", "D#m / Ebm", "Em", "Fm", "F#m", "Gm", "G#m"
     ];
 
-    // --- 樂理和弦自動移調 (Chord Transpose Logic) ---
+    // 解析時間字串 (如 "04:30" 或 "4:30" 轉換成秒數)
+    function parseDurationToSeconds(durationStr) {
+      if (!durationStr) return 240;
+      const parts = durationStr.split(':');
+      if (parts.length === 2) {
+        const m = parseInt(parts[0], 10) || 0;
+        const s = parseInt(parts[1], 10) || 0;
+        return (m * 60) + s;
+      }
+      const num = parseInt(durationStr, 10);
+      return !isNaN(num) ? num * 60 : 240;
+    }
+
     const chromaticScale = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
     const flatScale = ['C', 'Db', 'D', 'Eb', 'E', 'F', 'Gb', 'G', 'Ab', 'A', 'Bb', 'B'];
 
@@ -433,7 +451,6 @@
       }
     }
 
-    // --- 現場時鐘與倒數計時器 (Live Clock & Countdown) ---
     function initLiveClock() {
       setInterval(() => {
         const now = new Date();
@@ -443,13 +460,10 @@
       }, 1000);
     }
 
-    function setTimerMinutes() {
-      const input = prompt("請輸入歌曲預估時間 (分鐘):", Math.round(initialTimerSeconds / 60));
-      if (input !== null && !isNaN(input) && input > 0) {
-        initialTimerSeconds = parseInt(input) * 60;
-        timerSeconds = initialTimerSeconds;
-        updateTimerDisplay();
-      }
+    function loadSongTimer(durationStr) {
+      initialTimerSeconds = parseDurationToSeconds(durationStr);
+      timerSeconds = initialTimerSeconds;
+      updateTimerDisplay();
     }
 
     function updateTimerDisplay() {
@@ -560,6 +574,7 @@
             key: "C",
             prefKey: "C",
             bpm: "120",
+            duration: "04:30",
             viewCount: 1,
             lyrics: `作詞：潘雲安  作曲：潘雲安\n\n[C]我肯定在幾百年前就說過愛你\n\n[G]只是你忘了\n\n[Am]我也沒想起\n\n⭐ 重點\n\n[F]我肯定在幾百年前就說過愛你`
           }];
@@ -773,12 +788,14 @@
       const key = document.getElementById('input-key').value;
       const prefKey = document.getElementById('input-pref-key').value;
       const bpm = document.getElementById('input-bpm').value;
+      const duration = document.getElementById('input-duration').value;
 
       document.getElementById('song-title').innerText = title || '新歌曲';
       document.getElementById('song-artist').innerText = artist || '-';
       document.getElementById('song-key').innerText = key;
       document.getElementById('song-pref-key').innerText = prefKey;
       document.getElementById('song-bpm').innerText = bpm || '-';
+      document.getElementById('song-duration-display').innerText = duration || '-';
 
       const currentSongIndex = tabs[activeTabIndex];
       if (currentSongIndex !== 'new' && songs[currentSongIndex]) {
@@ -787,6 +804,7 @@
         songs[currentSongIndex].key = key;
         songs[currentSongIndex].prefKey = prefKey;
         songs[currentSongIndex].bpm = bpm;
+        songs[currentSongIndex].duration = duration;
       }
     }
 
@@ -824,8 +842,7 @@
 
     function switchTab(tIdx) {
       if (isScrolling) toggleLiveScroll();
-      resetTranspose(); // 切換歌曲時重置移調
-      resetTimer();     // 重置歌曲倒數計時器
+      resetTranspose();
       activeTabIndex = tIdx;
       renderTabs();
       renderCurrentTabSong();
@@ -877,6 +894,7 @@
       document.getElementById('input-key').value = song.key || '-';
       document.getElementById('input-pref-key').value = song.prefKey || '-';
       document.getElementById('input-bpm').value = song.bpm || '';
+      document.getElementById('input-duration').value = song.duration || '';
       
       const lyricsInput = document.getElementById('input-lyrics');
       let rawLyrics = song.lyrics || '';
@@ -993,6 +1011,7 @@
       document.getElementById('song-key').innerText = song.key || '-';
       document.getElementById('song-pref-key').innerText = song.prefKey || '-';
       document.getElementById('song-bpm').innerText = song.bpm || '-';
+      document.getElementById('song-duration-display').innerText = song.duration || '-';
 
       const lyricsInput = document.getElementById('input-lyrics');
       if (lyricsInput) {
@@ -1004,6 +1023,9 @@
       document.getElementById('live-title').innerText = song.title;
       document.getElementById('live-info').innerHTML = `原: <b class="text-amber-300/90 text-lg md:text-xl font-mono">${song.key || '-'}</b> | 常用: <b class="text-emerald-300/90 text-lg md:text-xl font-mono">${song.prefKey || '-'}</b> | BPM: <b class="text-stone-300 text-lg md:text-xl font-mono">${song.bpm || '-'}</b>`;
       document.getElementById('live-lyrics-container').innerHTML = generateLyricsHTML(song.lyrics, true);
+
+      // 自動加載歌曲預設時長並重置倒數計時器
+      loadSongTimer(song.duration);
     }
 
     function generateLyricsHTML(lyricsText, isLive = false) {
@@ -1026,7 +1048,6 @@
 
         while ((match = regex.exec(line)) !== null) {
           hasChord = true;
-          // 套用自動移調邏輯
           const displayedChord = transposeOffset !== 0 ? transposeChordToken(match[1], transposeOffset) : match[1];
 
           lineHtml += `
@@ -1099,14 +1120,14 @@
           liveBtn.innerText = '暫停滾動';
         }
         scrollTimer = setInterval(performLiveScroll, getScrollInterval());
-        startTimer(); // 同步開始單曲倒數
+        startTimer();
       } else {
         if (liveBtn) {
           liveBtn.classList.replace('bg-amber-200/90', 'bg-stone-200');
           liveBtn.innerText = '開始滾動';
         }
         clearInterval(scrollTimer);
-        clearInterval(timerInterval); // 暫停倒數
+        clearInterval(timerInterval);
       }
     }
 
@@ -1116,12 +1137,14 @@
       document.getElementById('song-key').innerText = '-';
       document.getElementById('song-pref-key').innerText = '-';
       document.getElementById('song-bpm').innerText = '-';
+      document.getElementById('song-duration-display').innerText = '-';
 
       document.getElementById('input-title').value = '';
       document.getElementById('input-artist').value = '';
       document.getElementById('input-key').value = '-';
       document.getElementById('input-pref-key').value = '-';
       document.getElementById('input-bpm').value = '';
+      document.getElementById('input-duration').value = '';
       
       const lyricsInput = document.getElementById('input-lyrics');
       if (lyricsInput) {
@@ -1136,6 +1159,7 @@
       const key = document.getElementById('input-key').value || '-';
       const prefKey = document.getElementById('input-pref-key').value || '-';
       const bpm = document.getElementById('input-bpm').value || '-';
+      const duration = document.getElementById('input-duration').value || '04:00';
       const lyrics = document.getElementById('input-lyrics').value || '';
       
       const currentSongIndex = tabs[activeTabIndex];
@@ -1148,6 +1172,7 @@
         key, 
         prefKey, 
         bpm, 
+        duration,
         lyrics,
         viewCount: currentViewCount
       };
