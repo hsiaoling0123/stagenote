@@ -9,16 +9,16 @@
   "theme_color": "#09090b",
   "icons": [
     {
-      "src": "https://pwa-builder-icons.azurewebsites.net/api/icons/192",
+      "src": "https://raw.githubusercontent.com/hsiaoling0123/stagenote/main/icon-192.png",
       "sizes": "192x192",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
     },
     {
-      "src": "https://pwa-builder-icons.azurewebsites.net/api/icons/512",
+      "src": "https://raw.githubusercontent.com/hsiaoling0123/stagenote/main/icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
     }
   ]
 }
