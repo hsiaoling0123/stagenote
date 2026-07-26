@@ -46,6 +46,7 @@
     const db = firebase.database();
   </script>
 
+  <!-- 常規模式 UI (改為雙欄式版型) -->
   <div id="normal-view">
     <!-- 頂部功能導覽 -->
     <header class="flex justify-between items-center border-b border-slate-800 pb-3 mb-2">
@@ -64,9 +65,6 @@
         <button onclick="enterLiveMode()" class="bg-red-600 hover:bg-red-500 text-white text-xs font-bold px-3 py-1.5 rounded-lg flex items-center gap-1 active:scale-95 transition shadow-lg shadow-red-900/40">
           <i data-lucide="mic" class="w-3.5 h-3.5"></i> 演出
         </button>
-        <button onclick="toggleEditModal()" class="bg-slate-800 text-slate-200 text-xs px-2.5 py-1.5 rounded-lg border border-slate-700 active:scale-95 transition">
-          <i data-lucide="edit-3" class="w-3.5 h-3.5"></i>
-        </button>
       </div>
     </header>
 
@@ -74,32 +72,118 @@
     <div class="flex items-center gap-1 mb-4 overflow-x-auto no-scrollbar pb-1 border-b border-slate-800/80" id="tabs-container">
     </div>
 
-    <!-- 主資訊卡片 -->
-    <div class="bg-slate-900 border border-slate-800 rounded-xl p-4 mb-6 shadow-lg">
-      <div class="flex justify-between items-start mb-3 gap-2">
+    <!-- 主區塊：左側預覽 + 右側編輯工具欄 -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+      
+      <!-- 左側：歌詞預覽區 (點擊可跳至右側編輯) -->
+      <div class="lg:col-span-7 flex flex-col gap-4">
+        <!-- 主資訊卡片 -->
+        <div class="bg-slate-900 border border-slate-800 rounded-xl p-4 shadow-lg">
+          <div class="flex justify-between items-start mb-3 gap-2">
+            <div>
+              <h2 id="song-title" class="text-2xl font-bold text-white">載入中...</h2>
+              <p id="song-artist" class="text-slate-400 text-sm">-</p>
+            </div>
+            <div class="flex items-center gap-1.5">
+              <button onclick="toggleSearchModal()" class="bg-slate-800 hover:bg-slate-700 text-slate-200 p-2 rounded-lg border border-slate-700 active:scale-95 transition flex items-center gap-1 text-xs">
+                <i data-lucide="search" class="w-4 h-4 text-blue-400"></i>
+                <span>搜尋</span>
+              </button>
+              <select id="song-select" onchange="switchSong(this.value)" class="bg-slate-800 text-slate-200 text-sm border border-slate-700 rounded-lg p-2 focus:outline-none max-w-[140px] truncate">
+              </select>
+            </div>
+          </div>
+          <div class="flex flex-wrap gap-2 text-xs font-mono">
+            <span class="bg-slate-800 px-2.5 py-1 rounded border border-slate-700">原Key: <b id="song-key" class="text-yellow-400">-</b></span>
+            <span class="bg-slate-800 px-2.5 py-1 rounded border border-slate-700">常用Key: <b id="song-pref-key" class="text-emerald-400">-</b></span>
+            <span class="bg-slate-800 px-2.5 py-1 rounded border border-slate-700">BPM: <b id="song-bpm" class="text-blue-400">-</b></span>
+          </div>
+        </div>
+
+        <!-- 歌詞顯示 (點擊可直接 focus 右側歌詞輸入框) -->
+        <div class="relative group cursor-pointer" onclick="focusLyricsInput()">
+          <div class="absolute -top-3 right-2 opacity-0 group-hover:opacity-100 transition bg-blue-600 text-white text-[10px] px-2 py-0.5 rounded-full shadow">
+            點擊可直接編輯歌詞 ✏️
+          </div>
+          <main id="lyrics-container" class="leading-relaxed tracking-wider space-y-6 text-2xl font-medium p-4 bg-slate-900/40 rounded-xl border border-slate-800/60 hover:border-blue-500/50 transition">
+          </main>
+        </div>
+      </div>
+
+      <!-- 右側：編輯工具欄 (把原本 Modal 的內容嵌入右邊) -->
+      <div class="lg:col-span-5 bg-slate-900 border border-slate-800 rounded-2xl p-5 flex flex-col gap-4 shadow-xl lg:sticky lg:top-4">
+        <div class="flex justify-between items-center border-b border-slate-800 pb-2">
+          <h3 class="text-base font-bold text-white flex items-center gap-2">
+            <i data-lucide="sliders" class="w-4 h-4 text-blue-400"></i>
+            編輯歌曲與註記
+          </h3>
+          <span class="text-xs text-slate-500">即時修改同步</span>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="text-xs text-slate-400 mb-1 block">歌名</label>
+            <input id="input-title" type="text" class="w-full bg-slate-800 border border-slate-700 rounded-lg p-2 text-sm text-white focus:outline-none focus:border-blue-500">
+          </div>
+          <div>
+            <label class="text-xs text-slate-400 mb-1 block">歌手</label>
+            <input id="input-artist" type="text" class="w-full bg-slate-800 border border-slate-700 rounded-lg p-2 text-sm text-white focus:outline-none focus:border-blue-500">
+          </div>
+        </div>
+
+        <!-- Key 選單 & BPM 區塊 -->
+        <div class="grid grid-cols-3 gap-2">
+          <div>
+            <label class="text-xs text-slate-400 mb-1 block">原 Key</label>
+            <select id="input-key" class="w-full bg-slate-800 border border-slate-700 rounded-lg p-2 text-sm text-white focus:outline-none focus:border-blue-500">
+            </select>
+          </div>
+          <div>
+            <label class="text-xs text-slate-400 mb-1 block">常用 Key</label>
+            <select id="input-pref-key" class="w-full bg-slate-800 border border-slate-700 rounded-lg p-2 text-sm text-white focus:outline-none focus:border-blue-500">
+            </select>
+          </div>
+          <div>
+            <label class="text-xs text-slate-400 mb-1 block">BPM</label>
+            <input id="input-bpm" type="text" placeholder="120" class="w-full bg-slate-800 border border-slate-700 rounded-lg p-2 text-sm text-white focus:outline-none focus:border-blue-500">
+          </div>
+        </div>
+
+        <!-- 快速標記區 -->
         <div>
-          <h2 id="song-title" class="text-2xl font-bold text-white">載入中...</h2>
-          <p id="song-artist" class="text-slate-400 text-sm">-</p>
+          <label class="text-xs text-blue-400 mb-1.5 block font-bold">⚡ 點擊快速插入演出標記：</label>
+          <div class="flex flex-wrap gap-1.5 max-h-24 overflow-y-auto p-1.5 bg-slate-950 rounded-lg border border-slate-800">
+            <button onclick="insertTag('🫁 換氣')" class="bg-slate-800 hover:bg-slate-700 text-xs px-2 py-1 rounded text-slate-200 border border-slate-700">🫁 換氣</button>
+            <button onclick="insertTag('🎤 Mic拉遠')" class="bg-slate-800 hover:bg-slate-700 text-xs px-2 py-1 rounded text-slate-200 border border-slate-700">🎤 Mic拉遠</button>
+            <button onclick="insertTag('🎤 Mic靠近')" class="bg-slate-800 hover:bg-slate-700 text-xs px-2 py-1 rounded text-slate-200 border border-slate-700">🎤 Mic靠近</button>
+            <button onclick="insertTag('🔥 情緒')" class="bg-slate-800 hover:bg-slate-700 text-xs px-2 py-1 rounded text-slate-200 border border-slate-700">🔥 情緒</button>
+            <button onclick="insertTag('❤️ 微笑')" class="bg-slate-800 hover:bg-slate-700 text-xs px-2 py-1 rounded text-slate-200 border border-slate-700">❤️ 微笑</button>
+            <button onclick="insertTag('👀 看觀眾')" class="bg-slate-800 hover:bg-slate-700 text-xs px-2 py-1 rounded text-slate-200 border border-slate-700">👀 看觀眾</button>
+            <button onclick="insertTag('🤝 互動')" class="bg-slate-800 hover:bg-slate-700 text-xs px-2 py-1 rounded text-slate-200 border border-slate-700">🤝 互動</button>
+            <button onclick="insertTag('🎸 吉他Solo')" class="bg-slate-800 hover:bg-slate-700 text-xs px-2 py-1 rounded text-slate-200 border border-slate-700">🎸 Solo</button>
+            <button onclick="insertTag('🥁 鼓Fill')" class="bg-slate-800 hover:bg-slate-700 text-xs px-2 py-1 rounded text-slate-200 border border-slate-700">🥁 鼓Fill</button>
+            <button onclick="insertTag('⬆️ 升Key')" class="bg-slate-800 hover:bg-slate-700 text-xs px-2 py-1 rounded text-slate-200 border border-slate-700">⬆️ 升Key</button>
+            <button onclick="insertTag('⬇️ 降Key')" class="bg-slate-800 hover:bg-slate-700 text-xs px-2 py-1 rounded text-slate-200 border border-slate-700">⬇️ 降Key</button>
+            <button onclick="insertTag('⭐ 重點')" class="bg-slate-800 hover:bg-slate-700 text-xs px-2 py-1 rounded text-slate-200 border border-slate-700">⭐ 重點</button>
+            <button onclick="insertTag('⚠️ 小心高音')" class="bg-slate-800 hover:bg-slate-700 text-xs px-2 py-1 rounded text-slate-200 border border-slate-700">⚠️ 小心高音</button>
+            <button onclick="insertTag('😌 放輕鬆')" class="bg-slate-800 hover:bg-slate-700 text-xs px-2 py-1 rounded text-slate-200 border border-slate-700">😌 放輕鬆</button>
+          </div>
         </div>
-        <div class="flex items-center gap-1.5">
-          <button onclick="toggleSearchModal()" class="bg-slate-800 hover:bg-slate-700 text-slate-200 p-2 rounded-lg border border-slate-700 active:scale-95 transition flex items-center gap-1 text-xs">
-            <i data-lucide="search" class="w-4 h-4 text-blue-400"></i>
-            <span>搜尋</span>
-          </button>
-          <select id="song-select" onchange="switchSong(this.value)" class="bg-slate-800 text-slate-200 text-sm border border-slate-700 rounded-lg p-2 focus:outline-none max-w-[140px] truncate">
-          </select>
+
+        <!-- 歌詞輸入編輯框 -->
+        <div class="flex-1 flex flex-col">
+          <label class="text-xs text-slate-400 mb-1 block">歌詞與和弦 (和弦格式: [C]我來到[G]你的城市)</label>
+          <textarea id="input-lyrics" class="w-full flex-1 min-h-[180px] bg-slate-800 border border-slate-700 rounded-lg p-3 text-sm text-white font-mono focus:outline-none focus:border-blue-500"></textarea>
         </div>
+
+        <button onclick="saveCurrentSong()" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-2.5 rounded-xl transition active:scale-95">
+          同步儲存至雲端
+        </button>
       </div>
-      <div class="flex flex-wrap gap-2 text-xs font-mono">
-        <span class="bg-slate-800 px-2.5 py-1 rounded border border-slate-700">原Key: <b id="song-key" class="text-yellow-400">-</b></span>
-        <span class="bg-slate-800 px-2.5 py-1 rounded border border-slate-700">常用Key: <b id="song-pref-key" class="text-emerald-400">-</b></span>
-        <span class="bg-slate-800 px-2.5 py-1 rounded border border-slate-700">BPM: <b id="song-bpm" class="text-blue-400">-</b></span>
-      </div>
+
     </div>
 
-    <main id="lyrics-container" class="leading-relaxed tracking-wider space-y-6 text-2xl font-medium">
-    </main>
-
+    <!-- 底部控制列 -->
     <div class="fixed bottom-0 left-0 right-0 bg-slate-900/95 backdrop-blur-md border-t border-slate-800 p-4 flex justify-around items-center z-40">
       <button onclick="changeFontSize(-2)" class="p-3 bg-slate-800 rounded-full active:scale-95 transition">
         <i data-lucide="zoom-out"></i>
@@ -114,6 +198,7 @@
     </div>
   </div>
 
+  <!-- 🎤 演出模式 (Live Mode) -->
   <div id="live-view" class="fixed inset-0 bg-black z-50 hidden flex flex-col p-4 overflow-y-auto">
     <div class="sticky top-0 bg-black/90 backdrop-blur-lg z-10 border-b border-zinc-800 pb-3 mb-2 space-y-2.5">
       <div class="flex items-center justify-between gap-2">
@@ -162,6 +247,7 @@
     </div>
   </div>
 
+  <!-- 🔍 搜尋視窗 Modal -->
   <div id="search-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-start justify-center p-4 pt-16">
     <div class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-md p-4 flex flex-col gap-3 shadow-2xl">
       <div class="flex justify-between items-center border-b border-slate-800 pb-2">
@@ -181,78 +267,6 @@
     </div>
   </div>
 
-  <!-- 編輯 Modal -->
-  <div id="edit-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
-    <div class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-lg p-5 flex flex-col gap-4 max-h-[92vh]">
-      <div class="flex justify-between items-center border-b border-slate-800 pb-2">
-        <h3 class="text-lg font-bold text-white">編輯歌曲與註記</h3>
-        <button onclick="toggleEditModal()" class="text-slate-400 hover:text-white"><i data-lucide="x"></i></button>
-      </div>
-
-      <div class="grid grid-cols-2 gap-3">
-        <div>
-          <label class="text-xs text-slate-400 mb-1 block">歌名</label>
-          <input id="input-title" type="text" class="w-full bg-slate-800 border border-slate-700 rounded-lg p-2 text-sm text-white focus:outline-none">
-        </div>
-        <div>
-          <label class="text-xs text-slate-400 mb-1 block">歌手</label>
-          <input id="input-artist" type="text" class="w-full bg-slate-800 border border-slate-700 rounded-lg p-2 text-sm text-white focus:outline-none">
-        </div>
-      </div>
-
-      <!-- Key 選單 & BPM 區塊 (3欄排版) -->
-      <div class="grid grid-cols-3 gap-2">
-        <div>
-          <label class="text-xs text-slate-400 mb-1 block">原 Key</label>
-          <select id="input-key" class="w-full bg-slate-800 border border-slate-700 rounded-lg p-2 text-sm text-white focus:outline-none">
-            <!-- 動態生成 Key 選項 -->
-          </select>
-        </div>
-        <div>
-          <label class="text-xs text-slate-400 mb-1 block">常用 Key</label>
-          <select id="input-pref-key" class="w-full bg-slate-800 border border-slate-700 rounded-lg p-2 text-sm text-white focus:outline-none">
-            <!-- 動態生成 Key 選項 -->
-          </select>
-        </div>
-        <div>
-          <label class="text-xs text-slate-400 mb-1 block">BPM</label>
-          <input id="input-bpm" type="text" placeholder="120" class="w-full bg-slate-800 border border-slate-700 rounded-lg p-2 text-sm text-white focus:outline-none">
-        </div>
-      </div>
-
-      <div>
-        <label class="text-xs text-blue-400 mb-1.5 block font-bold">⚡ 點擊快速插入演出標記：</label>
-        <div class="flex flex-wrap gap-1.5 max-h-24 overflow-y-auto p-1 bg-slate-950 rounded-lg border border-slate-800">
-          <button onclick="insertTag('🫁 換氣')" class="bg-slate-800 hover:bg-slate-700 text-xs px-2 py-1 rounded text-slate-200 border border-slate-700">🫁 換氣</button>
-          <button onclick="insertTag('🎤 Mic拉遠')" class="bg-slate-800 hover:bg-slate-700 text-xs px-2 py-1 rounded text-slate-200 border border-slate-700">🎤 Mic拉遠</button>
-          <button onclick="insertTag('🎤 Mic靠近')" class="bg-slate-800 hover:bg-slate-700 text-xs px-2 py-1 rounded text-slate-200 border border-slate-700">🎤 Mic靠近</button>
-          <button onclick="insertTag('🔥 情緒')" class="bg-slate-800 hover:bg-slate-700 text-xs px-2 py-1 rounded text-slate-200 border border-slate-700">🔥 情緒</button>
-          <button onclick="insertTag('❤️ 微笑')" class="bg-slate-800 hover:bg-slate-700 text-xs px-2 py-1 rounded text-slate-200 border border-slate-700">❤️ 微笑</button>
-          <button onclick="insertTag('👀 看觀眾')" class="bg-slate-800 hover:bg-slate-700 text-xs px-2 py-1 rounded text-slate-200 border border-slate-700">👀 看觀眾</button>
-          <button onclick="insertTag('🤝 互動')" class="bg-slate-800 hover:bg-slate-700 text-xs px-2 py-1 rounded text-slate-200 border border-slate-700">🤝 互動</button>
-          <button onclick="insertTag('🎸 吉他Solo')" class="bg-slate-800 hover:bg-slate-700 text-xs px-2 py-1 rounded text-slate-200 border border-slate-700">🎸 Solo</button>
-          <button onclick="insertTag('🥁 鼓Fill')" class="bg-slate-800 hover:bg-slate-700 text-xs px-2 py-1 rounded text-slate-200 border border-slate-700">🥁 鼓Fill</button>
-          <button onclick="insertTag('⬆️ 升Key')" class="bg-slate-800 hover:bg-slate-700 text-xs px-2 py-1 rounded text-slate-200 border border-slate-700">⬆️ 升Key</button>
-          <button onclick="insertTag('⬇️ 降Key')" class="bg-slate-800 hover:bg-slate-700 text-xs px-2 py-1 rounded text-slate-200 border border-slate-700">⬇️ 降Key</button>
-          <button onclick="insertTag('⭐ 重點')" class="bg-slate-800 hover:bg-slate-700 text-xs px-2 py-1 rounded text-slate-200 border border-slate-700">⭐ 重點</button>
-          <button onclick="insertTag('⚠️ 小心高音')" class="bg-slate-800 hover:bg-slate-700 text-xs px-2 py-1 rounded text-slate-200 border border-slate-700">⚠️ 小心高音</button>
-          <button onclick="insertTag('😌 放輕鬆')" class="bg-slate-800 hover:bg-slate-700 text-xs px-2 py-1 rounded text-slate-200 border border-slate-700">😌 放輕鬆</button>
-        </div>
-      </div>
-
-      <div class="flex-1 flex flex-col">
-        <label class="text-xs text-slate-400 mb-1 block">歌詞與和弦 (和弦格式: [C]我來到[G]你的城市)</label>
-        <textarea id="input-lyrics" class="w-full flex-1 min-h-[160px] bg-slate-800 border border-slate-700 rounded-lg p-3 text-sm text-white font-mono focus:outline-none"></textarea>
-      </div>
-
-      <div class="flex gap-2 justify-end pt-2">
-        <button onclick="saveCurrentSong()" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-2.5 rounded-xl transition">
-          同步儲存至雲端
-        </button>
-      </div>
-    </div>
-  </div>
-
   <script>
     let songs = [];
     let tabs = [0];
@@ -265,7 +279,6 @@
     let showChords = true;
     let showTags = true;
 
-    // 所有常見用到的 Key 清單
     const allKeys = [
       "-",
       "C", "C# / Db", "D", "D# / Eb", "E", "F", "F# / Gb", "G", "G# / Ab", "A", "A# / Bb", "B",
@@ -328,7 +341,6 @@
       });
     };
 
-    // 初始化 Key 選單內容
     function initKeySelectOptions() {
       const keySelect = document.getElementById('input-key');
       const prefKeySelect = document.getElementById('input-pref-key');
@@ -336,6 +348,12 @@
       
       keySelect.innerHTML = optionsHtml;
       prefKeySelect.innerHTML = optionsHtml;
+    }
+
+    // 💡 點擊左側歌詞可直接 focus 到右側輸入框
+    function focusLyricsInput() {
+      const textarea = document.getElementById('input-lyrics');
+      textarea.focus();
     }
 
     // --- 分頁邏輯 (Tabs Logic) ---
@@ -397,7 +415,18 @@
       if (songs[currentSongIndex]) {
         renderSong(songs[currentSongIndex]);
         document.getElementById('song-select').value = currentSongIndex;
+        populateRightSidebarForm(songs[currentSongIndex]);
       }
+    }
+
+    // 同步把當前歌曲資料帶入右邊工具欄表格
+    function populateRightSidebarForm(song) {
+      document.getElementById('input-title').value = song.title || '';
+      document.getElementById('input-artist').value = song.artist || '';
+      document.getElementById('input-key').value = song.key || '-';
+      document.getElementById('input-pref-key').value = song.prefKey || '-';
+      document.getElementById('input-bpm').value = song.bpm || '';
+      document.getElementById('input-lyrics').value = song.lyrics || '';
     }
 
     // --- 搜尋與歌曲切換 ---
@@ -443,6 +472,7 @@
       renderTabs();
       renderSong(songs[index]);
       document.getElementById('song-select').value = index;
+      populateRightSidebarForm(songs[index]);
       toggleSearchModal();
     }
 
@@ -495,6 +525,7 @@
         tabs[activeTabIndex] = index;
         renderTabs();
         renderSong(songs[index]);
+        populateRightSidebarForm(songs[index]);
       }
     }
 
@@ -619,21 +650,6 @@
       }
     }
 
-    function toggleEditModal() {
-      const modal = document.getElementById('edit-modal');
-      modal.classList.toggle('hidden');
-      const currentSongIndex = tabs[activeTabIndex];
-      if (!modal.classList.contains('hidden') && songs[currentSongIndex]) {
-        const cur = songs[currentSongIndex];
-        document.getElementById('input-title').value = cur.title || '';
-        document.getElementById('input-artist').value = cur.artist || '';
-        document.getElementById('input-key').value = cur.key || '-';
-        document.getElementById('input-pref-key').value = cur.prefKey || '-';
-        document.getElementById('input-bpm').value = cur.bpm || '';
-        document.getElementById('input-lyrics').value = cur.lyrics || '';
-      }
-    }
-
     function openNewSongModal() {
       document.getElementById('input-title').value = '';
       document.getElementById('input-artist').value = '';
@@ -641,7 +657,7 @@
       document.getElementById('input-pref-key').value = '-';
       document.getElementById('input-bpm').value = '';
       document.getElementById('input-lyrics').value = '';
-      document.getElementById('edit-modal').classList.remove('hidden');
+      document.getElementById('input-title').focus();
     }
 
     function saveCurrentSong() {
@@ -663,7 +679,6 @@
       }
 
       db.ref('songs').set(songs).then(() => {
-        toggleEditModal();
         renderTabs();
         renderCurrentTabSong();
       });
