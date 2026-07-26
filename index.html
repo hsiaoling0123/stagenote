@@ -96,7 +96,7 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
-    // 隨機打氣小語庫（已全數更換為「你」）
+    // 隨機打氣小語庫
     const cheerMessages = [
       "今夜的舞台屬於你，放輕鬆享受音樂吧。",
       "深呼吸，把心交給旋律，你會唱得很棒！",
@@ -107,7 +107,6 @@
       "享受每一個樂句，把溫暖唱進大家心裡。"
     ];
 
-    // 初始化隨機選一句小語
     document.addEventListener("DOMContentLoaded", () => {
       const randomIndex = Math.floor(Math.random() * cheerMessages.length);
       const cheerEl = document.getElementById('cheer-message');
@@ -226,14 +225,34 @@
           </div>
         </div>
 
-        <!-- 快速標記區與新增自訂標記 -->
+        <!-- 🎸 快速插入和弦標籤 -->
+        <div>
+          <div class="flex justify-between items-center mb-2.5">
+            <label class="text-xs font-serif-tc text-amber-200/80 font-medium">🎸 快速插入和弦</label>
+            <span class="text-[10px] text-stone-600">（點擊插入游標處）</span>
+          </div>
+          
+          <div id="chords-list-container" class="flex flex-wrap gap-1.5 max-h-40 overflow-y-auto p-2.5 bg-stone-950/80 rounded-xl border border-stone-800/80 mb-2.5">
+            <!-- 動態渲染和弦按鈕 -->
+          </div>
+
+          <!-- 自訂和弦輸入區 -->
+          <div class="flex gap-2">
+            <input id="custom-chord-input" type="text" placeholder="新增和弦 (如: Cadd9, D/F#)..." class="flex-1 bg-stone-950 border border-stone-800 rounded-xl px-3 py-1.5 text-xs text-stone-200 font-mono focus:outline-none focus:border-stone-600">
+            <button onclick="addCustomChord()" class="bg-stone-800 hover:bg-stone-700 text-stone-200 text-xs font-medium px-3.5 py-1.5 rounded-xl border border-stone-700 transition active:scale-95 shrink-0 flex items-center gap-1">
+              <i data-lucide="plus" class="w-3.5 h-3.5"></i> 加和弦
+            </button>
+          </div>
+        </div>
+
+        <!-- ⚡ 快速標記區與新增自訂標記 -->
         <div>
           <div class="flex justify-between items-center mb-2.5">
             <label class="text-xs font-serif-tc text-amber-200/80 font-medium">插入舞台註記</label>
             <span class="text-[10px] text-stone-600">（長按即可移除）</span>
           </div>
           
-          <div id="tags-list-container" class="flex flex-wrap gap-2 max-h-52 overflow-y-auto p-3 bg-stone-950/80 rounded-xl border border-stone-800/80 mb-3">
+          <div id="tags-list-container" class="flex flex-wrap gap-2 max-h-40 overflow-y-auto p-3 bg-stone-950/80 rounded-xl border border-stone-800/80 mb-3">
             <!-- 動態渲染標記 -->
           </div>
 
@@ -349,6 +368,13 @@
     let showChords = true;
     let showTags = true;
 
+    // 預設常用和弦清單
+    let customChords = [
+      'C', 'D', 'E', 'F', 'G', 'A', 'B',
+      'Cm', 'Dm', 'Em', 'Fm', 'Gm', 'Am', 'Bm',
+      'C7', 'D7', 'E7', 'G7', 'A7', 'FM7', 'C/E', 'G/B', '♯', '♭'
+    ];
+
     let customTags = [
       '🫁 換氣', '🎤 Mic拉遠', '🎤 Mic靠近', '🔥 情緒', '❤️ 微笑', 
       '👀 看觀眾', '🤝 互動', '🎸 吉他Solo', '🥁 鼓Fill', '⬆️ 升Key', 
@@ -377,7 +403,6 @@
       el.style.height = el.scrollHeight + 'px';
     }
 
-    // 隱藏 Splash 畫面的函式
     function hideLoadingSplash() {
       const splash = document.getElementById('loading-splash');
       if (splash) {
@@ -391,6 +416,15 @@
     window.onload = () => {
       lucide.createIcons();
       initKeySelectOptions();
+
+      // 監聽 Firebase 快捷和弦清單
+      db.ref('custom_chords').on('value', (snapshot) => {
+        const data = snapshot.val();
+        if (data) {
+          customChords = Array.isArray(data) ? data : Object.values(data);
+        }
+        renderChordsList();
+      });
 
       // 監聽 Firebase 標記清單
       db.ref('custom_tags').on('value', (snapshot) => {
@@ -427,7 +461,6 @@
         renderTabs();
         renderCurrentTabSong();
 
-        // 完成雲端同步後，優雅淡出打氣 Splash 畫面
         hideLoadingSplash();
       });
     };
@@ -457,6 +490,89 @@
         songs[index].viewCount = (songs[index].viewCount || 0) + 1;
         db.ref(`songs/${index}/viewCount`).set(songs[index].viewCount);
       }
+    }
+
+    // 渲染和弦按鈕清單
+    function renderChordsList() {
+      const container = document.getElementById('chords-list-container');
+      container.innerHTML = customChords.map((chord, idx) => `
+        <button 
+          id="chord-btn-${idx}"
+          onclick="handleChordClick('${chord}', ${idx})"
+          oncontextmenu="handleChordContextMenu(event, '${chord}', ${idx})"
+          ontouchstart="handleChordTouchStart('${chord}', ${idx})"
+          ontouchend="handleChordTouchEnd()"
+          ontouchmove="handleChordTouchEnd()"
+          class="bg-stone-900 hover:bg-amber-950/40 text-amber-200/90 hover:text-amber-200 active:scale-95 text-xs font-mono font-bold px-2.5 py-1 rounded-md border border-stone-800/80 transition"
+        >
+          ${chord}
+        </button>
+      `).join('');
+    }
+
+    let chordLongPressTimer = null;
+    let isChordLongPressTriggered = false;
+
+    function handleChordTouchStart(chord, index) {
+      isChordLongPressTriggered = false;
+      chordLongPressTimer = setTimeout(() => {
+        isChordLongPressTriggered = true;
+        confirmDeleteCustomChord(chord, index);
+      }, 500);
+    }
+
+    function handleChordTouchEnd() {
+      if (chordLongPressTimer) {
+        clearTimeout(chordLongPressTimer);
+        chordLongPressTimer = null;
+      }
+    }
+
+    function handleChordClick(chord, index) {
+      if (isChordLongPressTriggered) {
+        isChordLongPressTriggered = false;
+        return;
+      }
+      insertChord(chord);
+    }
+
+    function handleChordContextMenu(e, chord, index) {
+      e.preventDefault();
+      confirmDeleteCustomChord(chord, index);
+    }
+
+    function confirmDeleteCustomChord(chord, index) {
+      if (confirm(`確定要移除快捷和弦 『${chord}』 嗎？`)) {
+        customChords.splice(index, 1);
+        db.ref('custom_chords').set(customChords);
+      }
+    }
+
+    function addCustomChord() {
+      const input = document.getElementById('custom-chord-input');
+      const newChord = input.value.trim();
+      if (!newChord) return;
+
+      if (!customChords.includes(newChord)) {
+        customChords.push(newChord);
+        db.ref('custom_chords').set(customChords);
+      }
+      input.value = '';
+    }
+
+    // 將和弦 [Chord] 插入至歌詞輸入框游標處
+    function insertChord(chordText) {
+      const textarea = document.getElementById('input-lyrics');
+      const start = textarea.selectionStart;
+      const end = textarea.selectionEnd;
+      const text = textarea.value;
+      
+      const insertContent = `[${chordText}]`;
+      textarea.value = text.substring(0, start) + insertContent + text.substring(end);
+      textarea.focus();
+      textarea.selectionStart = textarea.selectionEnd = start + insertContent.length;
+      adjustTextareaHeight(textarea);
+      autoSaveLyrics();
     }
 
     function renderTagsList() {
