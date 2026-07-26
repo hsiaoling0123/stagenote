@@ -191,18 +191,21 @@
   <!-- 🎤 演出模式 (Live Mode) -->
   <div id="live-view" class="fixed inset-0 bg-black z-50 hidden flex flex-col h-full w-full overflow-y-auto">
     
-    <!-- 懸浮最上層固定工具欄 (Sticky Top 抗手勢縮放推擠) -->
+    <!-- 懸浮最上層固定工具欄 -->
     <div class="sticky top-0 left-0 right-0 bg-black/95 backdrop-blur-xl z-50 border-b border-zinc-800 p-4 space-y-2.5 shadow-2xl shrink-0">
       <div class="flex items-center justify-between gap-2">
         <div class="flex items-center gap-2 min-w-0">
           <span class="shrink-0 bg-red-600 text-white text-[10px] font-black px-1.5 py-0.5 rounded tracking-widest">LIVE</span>
-          <h2 id="live-title" class="text-lg font-bold text-white truncate">歌曲名稱</h2>
+          <h2 id="live-title" class="text-xl font-black text-white truncate">歌曲名稱</h2>
         </div>
-        <div class="flex items-center gap-2">
-          <button onclick="toggleSearchModal()" class="bg-zinc-900 hover:bg-zinc-800 text-zinc-300 p-1.5 rounded-lg border border-zinc-800 active:scale-95 transition">
-            <i data-lucide="search" class="w-4 h-4 text-blue-400"></i>
+        <div class="flex items-center gap-2 shrink-0">
+          <button onclick="toggleSearchModal()" class="bg-zinc-900 hover:bg-zinc-800 text-zinc-300 p-2 rounded-xl border border-zinc-800 active:scale-95 transition">
+            <i data-lucide="search" class="w-5 h-5 text-blue-400"></i>
           </button>
-          <span id="live-info" class="shrink-0 text-xs font-mono text-zinc-400 bg-zinc-900 px-2 py-1 rounded border border-zinc-800">原: C | 常用: C</span>
+          <!-- 放大版 Key & BPM 資訊欄 -->
+          <span id="live-info" class="shrink-0 text-sm md:text-base font-mono font-bold text-zinc-200 bg-zinc-900 px-3 py-1.5 rounded-xl border border-zinc-700 shadow-inner">
+            原: - | 常用: -
+          </span>
         </div>
       </div>
 
@@ -210,31 +213,31 @@
       </div>
 
       <div class="flex items-center justify-between gap-2 pt-1">
-        <div class="flex items-center gap-1 bg-zinc-900 px-2.5 py-1.5 rounded-xl border border-zinc-800 text-xs text-zinc-300">
-          <span class="text-zinc-400 text-[11px] font-medium">速度</span>
-          <button onclick="adjustSpeed(-1)" class="w-7 h-7 bg-zinc-800 hover:bg-zinc-700 active:scale-90 rounded-lg flex items-center justify-center font-bold text-zinc-100 text-base">-</button>
-          <span id="speed-label" class="w-6 text-center font-mono font-bold text-blue-400 text-sm">5</span>
-          <button onclick="adjustSpeed(1)" class="w-7 h-7 bg-zinc-800 hover:bg-zinc-700 active:scale-90 rounded-lg flex items-center justify-center font-bold text-zinc-100 text-base">+</button>
+        <div class="flex items-center gap-1.5 bg-zinc-900 px-3 py-1.5 rounded-xl border border-zinc-800 text-sm text-zinc-300">
+          <span class="text-zinc-400 text-xs font-semibold">速度</span>
+          <button onclick="adjustSpeed(-1)" class="w-8 h-8 bg-zinc-800 hover:bg-zinc-700 active:scale-90 rounded-lg flex items-center justify-center font-bold text-zinc-100 text-lg">-</button>
+          <span id="speed-label" class="w-7 text-center font-mono font-bold text-blue-400 text-base">5</span>
+          <button onclick="adjustSpeed(1)" class="w-8 h-8 bg-zinc-800 hover:bg-zinc-700 active:scale-90 rounded-lg flex items-center justify-center font-bold text-zinc-100 text-lg">+</button>
         </div>
 
-        <div class="flex items-center gap-1.5">
-          <button onclick="toggleChords()" class="bg-zinc-900 hover:bg-zinc-800 active:scale-95 text-zinc-300 px-2.5 py-2 rounded-xl text-xs border border-zinc-800 transition">
+        <div class="flex items-center gap-2">
+          <button onclick="toggleChords()" class="bg-zinc-900 hover:bg-zinc-800 active:scale-95 text-zinc-200 px-3 py-2 rounded-xl text-xs md:text-sm font-semibold border border-zinc-800 transition">
             <span id="live-chord-toggle-text">和弦: 顯</span>
           </button>
-          <button onclick="toggleTags()" class="bg-zinc-900 hover:bg-zinc-800 active:scale-95 text-zinc-300 px-2.5 py-2 rounded-xl text-xs border border-zinc-800 transition">
+          <button onclick="toggleTags()" class="bg-zinc-900 hover:bg-zinc-800 active:scale-95 text-zinc-200 px-3 py-2 rounded-xl text-xs md:text-sm font-semibold border border-zinc-800 transition">
             <span id="live-tag-toggle-text">標記: 顯</span>
           </button>
-          <button id="live-scroll-btn" onclick="toggleLiveScroll()" class="bg-blue-600 hover:bg-blue-500 active:scale-95 text-white px-4 py-2 rounded-xl text-xs font-bold transition shadow-lg shadow-blue-900/40">
+          <button id="live-scroll-btn" onclick="toggleLiveScroll()" class="bg-blue-600 hover:bg-blue-500 active:scale-95 text-white px-4 py-2 rounded-xl text-xs md:text-sm font-extrabold transition shadow-lg shadow-blue-900/40">
             開始滾動
           </button>
-          <button onclick="exitLiveMode()" class="bg-zinc-800 hover:bg-zinc-700 active:scale-95 text-zinc-300 px-3 py-2 rounded-xl text-xs border border-zinc-700 transition">
+          <button onclick="exitLiveMode()" class="bg-zinc-800 hover:bg-zinc-700 active:scale-95 text-zinc-300 px-3 py-2 rounded-xl text-xs md:text-sm font-semibold border border-zinc-700 transition">
             退出
           </button>
         </div>
       </div>
     </div>
 
-    <!-- 歌詞區域 (直接緊接在工具列下方，不需額外 paddingTop 避免推擠遮擋) -->
+    <!-- 歌詞區域 -->
     <div class="px-6 pt-6 pb-60 flex-1">
       <div id="live-lyrics-container" class="space-y-8 text-3xl font-bold tracking-wide text-white">
       </div>
@@ -669,7 +672,7 @@
       adjustTextareaHeight(lyricsInput);
 
       document.getElementById('live-title').innerText = song.title;
-      document.getElementById('live-info').innerText = `原: ${song.key || '-'} | 常用: ${song.prefKey || '-'} | BPM: ${song.bpm || '-'}`;
+      document.getElementById('live-info').innerHTML = `原: <b class="text-yellow-400">${song.key || '-'}</b> | 常用: <b class="text-emerald-400">${song.prefKey || '-'}</b> | BPM: <b class="text-blue-400">${song.bpm || '-'}</b>`;
       document.getElementById('live-lyrics-container').innerHTML = generateLyricsHTML(song.lyrics, true);
     }
 
