@@ -195,7 +195,6 @@
           </div>
         </div>
 
-        <!-- Key 選單 & BPM & 歌曲時長 -->
         <div class="grid grid-cols-4 gap-2">
           <div>
             <label class="text-[11px] font-serif-tc text-stone-400 mb-1.5 block">原 Key</label>
@@ -255,76 +254,78 @@
     </div>
   </div>
 
-  <!-- 🎤 演出模式 (Live Mode) -->
+  <!-- 🎤 演出模式 (Live Mode) - 針對手機排版完全優化 -->
   <div id="live-view" class="fixed inset-0 bg-black z-50 hidden flex flex-col h-screen w-screen overflow-hidden">
     
-    <div class="bg-zinc-950/95 backdrop-blur-2xl border-b border-zinc-800/80 p-4 md:px-8 space-y-3 shadow-2xl shrink-0 z-50">
-      <div class="flex items-center justify-between gap-4">
-        <div class="flex items-center gap-3 min-w-0">
+    <div class="bg-zinc-950/95 backdrop-blur-2xl border-b border-zinc-800/80 p-3 md:p-6 space-y-2.5 shadow-2xl shrink-0 z-50">
+      
+      <!-- 第一行：歌名 + 時鐘/Key (手機自動換行) -->
+      <div class="flex flex-col md:flex-row md:items-center justify-between gap-2">
+        <div class="flex items-center gap-2 min-w-0">
           <span class="shrink-0 bg-rose-900/80 text-rose-200 border border-rose-700/50 text-[10px] font-mono px-2 py-0.5 rounded-full tracking-widest">LIVE</span>
-          <h2 id="live-title" class="text-3xl md:text-4xl font-serif-tc font-black text-stone-100 truncate tracking-wide">歌曲名稱</h2>
+          <h2 id="live-title" class="text-2xl md:text-4xl font-serif-tc font-black text-stone-100 truncate tracking-wide">歌曲名稱</h2>
         </div>
         
-        <!-- 大幅放大的 Key & BPM 面板 + 現場時鐘與自動讀取時長倒數 -->
-        <div class="shrink-0 flex items-center gap-2">
-          <div class="text-right hidden sm:block font-mono bg-stone-900/80 px-3 py-1.5 rounded-xl border border-stone-800">
-            <span id="live-clock" class="text-xs text-stone-400 block">00:00:00</span>
-            <span id="live-timer" class="text-amber-300/90 text-xs font-bold block">⏱️ 04:00</span>
+        <div class="flex items-center justify-between md:justify-end gap-2 shrink-0">
+          <div class="flex items-center gap-2 font-mono bg-stone-900 px-2.5 py-1 rounded-xl border border-stone-800 text-xs">
+            <span id="live-clock" class="text-stone-400">00:00:00</span>
+            <span id="live-timer" class="text-amber-300 font-bold">⏱️ 04:00</span>
           </div>
 
-          <span id="live-info" class="text-base md:text-xl font-mono font-medium text-stone-200 bg-stone-900 px-4 py-2 rounded-2xl border border-stone-800 shadow-xl tracking-wide block">
+          <span id="live-info" class="text-xs md:text-lg font-mono font-medium text-stone-200 bg-stone-900 px-3 py-1 rounded-xl border border-stone-800 tracking-wide">
             原: - | 常用: -
           </span>
         </div>
       </div>
 
+      <!-- 第二行：分頁 Tab 列 -->
       <div class="flex items-center gap-1 overflow-x-auto no-scrollbar pb-1 border-b border-zinc-800/60" id="live-tabs-container">
       </div>
 
-      <div class="flex items-center justify-between gap-2 pt-1">
-        <div class="flex items-center gap-2">
-          <!-- 滾動速度控制 -->
-          <div class="flex items-center gap-1.5 bg-stone-900 px-3 py-1.5 rounded-xl border border-stone-800 text-xs text-stone-300">
-            <span class="text-stone-500 font-serif-tc">速度</span>
-            <button onclick="adjustSpeed(-1)" class="w-6 h-6 bg-stone-800 hover:bg-stone-700 active:scale-90 rounded flex items-center justify-center font-bold text-stone-200">-</button>
-            <span id="speed-label" class="w-5 text-center font-mono font-bold text-amber-200/90 text-sm">5</span>
-            <button onclick="adjustSpeed(1)" class="w-6 h-6 bg-stone-800 hover:bg-stone-700 active:scale-90 rounded flex items-center justify-center font-bold text-stone-200">+</button>
-          </div>
-
-          <!-- 🔀 自動移調 (Auto Transpose) 面板 -->
-          <div class="flex items-center gap-1 bg-stone-900 px-2.5 py-1.5 rounded-xl border border-stone-800 text-xs font-mono">
-            <span class="text-stone-500 mr-0.5">移調</span>
-            <button onclick="transposeKey(-1)" class="w-6 h-6 bg-stone-800 hover:bg-stone-700 text-stone-200 rounded flex items-center justify-center font-bold active:scale-90">-</button>
-            <span id="transpose-offset-label" class="w-7 text-center text-amber-300 font-bold">原Key</span>
-            <button onclick="transposeKey(1)" class="w-6 h-6 bg-stone-800 hover:bg-stone-700 text-stone-200 rounded flex items-center justify-center font-bold active:scale-90">+</button>
-            <button onclick="resetTranspose()" class="text-[10px] text-stone-500 hover:text-stone-300 ml-1 underline">重置</button>
-          </div>
+      <!-- 第三行：控制面板 (手機版可左右滑動) -->
+      <div class="flex items-center gap-2 overflow-x-auto no-scrollbar pt-1 shrink-0">
+        <!-- 滾動速度控制 -->
+        <div class="flex items-center gap-1 bg-stone-900 px-2.5 py-1.5 rounded-xl border border-stone-800 text-xs text-stone-300 shrink-0">
+          <span class="text-stone-500 font-serif-tc text-[11px]">速度</span>
+          <button onclick="adjustSpeed(-1)" class="w-6 h-6 bg-stone-800 hover:bg-stone-700 active:scale-90 rounded flex items-center justify-center font-bold text-stone-200">-</button>
+          <span id="speed-label" class="w-4 text-center font-mono font-bold text-amber-200/90 text-xs">5</span>
+          <button onclick="adjustSpeed(1)" class="w-6 h-6 bg-stone-800 hover:bg-stone-700 active:scale-90 rounded flex items-center justify-center font-bold text-stone-200">+</button>
         </div>
 
-        <div class="flex items-center gap-2">
-          <button id="fullscreen-btn" onclick="toggleFullscreen()" class="bg-stone-900 hover:bg-stone-800 active:scale-95 text-stone-300 px-3.5 py-2 rounded-xl text-xs font-medium border border-stone-800 transition flex items-center gap-1">
-            <i data-lucide="maximize" class="w-3.5 h-3.5 text-amber-200/80"></i>
-            <span id="fullscreen-btn-text">全螢幕</span>
-          </button>
-          
-          <button onclick="toggleChords()" class="bg-stone-900 hover:bg-stone-800 active:scale-95 text-stone-300 px-3.5 py-2 rounded-xl text-xs font-medium border border-stone-800 transition">
-            <span id="live-chord-toggle-text">和弦: 顯</span>
-          </button>
-          <button onclick="toggleTags()" class="bg-stone-900 hover:bg-stone-800 active:scale-95 text-stone-300 px-3.5 py-2 rounded-xl text-xs font-medium border border-stone-800 transition">
-            <span id="live-tag-toggle-text">標記: 顯</span>
-          </button>
-          <button id="live-scroll-btn" onclick="toggleLiveScroll()" class="bg-stone-200 hover:bg-white active:scale-95 text-zinc-950 px-5 py-2 rounded-xl text-xs font-serif-tc font-bold transition shadow-md">
-            開始滾動
-          </button>
-          <button onclick="exitLiveMode()" class="bg-stone-900 hover:bg-stone-800 active:scale-95 text-stone-400 px-3.5 py-2 rounded-xl text-xs font-medium border border-stone-800 transition">
-            退出
-          </button>
+        <!-- 🔀 自動移調面板 -->
+        <div class="flex items-center gap-1 bg-stone-900 px-2.5 py-1.5 rounded-xl border border-stone-800 text-xs font-mono shrink-0">
+          <span class="text-stone-500 text-[11px]">移調</span>
+          <button onclick="transposeKey(-1)" class="w-6 h-6 bg-stone-800 hover:bg-stone-700 text-stone-200 rounded flex items-center justify-center font-bold active:scale-90">-</button>
+          <span id="transpose-offset-label" class="w-7 text-center text-amber-300 font-bold text-xs">原Key</span>
+          <button onclick="transposeKey(1)" class="w-6 h-6 bg-stone-800 hover:bg-stone-700 text-stone-200 rounded flex items-center justify-center font-bold active:scale-90">+</button>
+          <button onclick="resetTranspose()" class="text-[10px] text-stone-500 hover:text-stone-300 ml-0.5 underline">重置</button>
         </div>
+
+        <!-- 功能按鈕群 -->
+        <button id="fullscreen-btn" onclick="toggleFullscreen()" class="bg-stone-900 hover:bg-stone-800 active:scale-95 text-stone-300 px-3 py-1.5 rounded-xl text-xs font-medium border border-stone-800 transition flex items-center gap-1 shrink-0">
+          <i data-lucide="maximize" class="w-3.5 h-3.5 text-amber-200/80"></i>
+          <span id="fullscreen-btn-text">全螢幕</span>
+        </button>
+        
+        <button onclick="toggleChords()" class="bg-stone-900 hover:bg-stone-800 active:scale-95 text-stone-300 px-3 py-1.5 rounded-xl text-xs font-medium border border-stone-800 transition shrink-0">
+          <span id="live-chord-toggle-text">和弦: 顯</span>
+        </button>
+        <button onclick="toggleTags()" class="bg-stone-900 hover:bg-stone-800 active:scale-95 text-stone-300 px-3 py-1.5 rounded-xl text-xs font-medium border border-stone-800 transition shrink-0">
+          <span id="live-tag-toggle-text">標記: 顯</span>
+        </button>
+        <button id="live-scroll-btn" onclick="toggleLiveScroll()" class="bg-stone-200 hover:bg-white active:scale-95 text-zinc-950 px-4 py-1.5 rounded-xl text-xs font-serif-tc font-bold transition shadow-md shrink-0">
+          開始滾動
+        </button>
+        <button onclick="exitLiveMode()" class="bg-stone-900 hover:bg-stone-800 active:scale-95 text-stone-400 px-3 py-1.5 rounded-xl text-xs font-medium border border-stone-800 transition shrink-0">
+          退出
+        </button>
       </div>
+
     </div>
 
-    <div id="live-scroll-area" class="flex-1 overflow-y-auto px-6 md:px-12 pt-8 pb-60">
-      <div id="live-lyrics-container" class="space-y-8 text-3xl md:text-4xl font-serif-tc font-semibold tracking-wider text-stone-100 leading-relaxed">
+    <!-- 獨立滾動歌詞區域 -->
+    <div id="live-scroll-area" class="flex-1 overflow-y-auto px-4 md:px-12 pt-6 pb-60">
+      <div id="live-lyrics-container" class="space-y-6 text-2xl md:text-4xl font-serif-tc font-semibold tracking-wider text-stone-100 leading-relaxed">
       </div>
     </div>
   </div>
@@ -370,7 +371,6 @@
     let showTags = true;
     let isCustomFullscreen = false;
 
-    // 移調與計時器變數
     let transposeOffset = 0;
     let timerSeconds = 240;
     let initialTimerSeconds = 240;
@@ -394,7 +394,6 @@
       "Am", "A#m / Bbm", "Bm", "Cm", "C#m", "Dm", "D#m / Ebm", "Em", "Fm", "F#m", "Gm", "G#m"
     ];
 
-    // 解析時間字串 (如 "04:30" 或 "4:30" 轉換成秒數)
     function parseDurationToSeconds(durationStr) {
       if (!durationStr) return 240;
       const parts = durationStr.split(':');
@@ -824,13 +823,13 @@
           : 'bg-stone-900/80 text-stone-400 hover:bg-stone-800 border-stone-800';
 
         return `
-          <div onclick="switchTab(${tIdx})" class="flex items-center gap-2 px-4 py-2 rounded-full border text-xs cursor-pointer shrink-0 transition ${activeClass}">
-            <span class="max-w-[120px] truncate">${title}</span>
+          <div onclick="switchTab(${tIdx})" class="flex items-center gap-2 px-3.5 py-1.5 rounded-full border text-xs cursor-pointer shrink-0 transition ${activeClass}">
+            <span class="max-w-[100px] truncate">${title}</span>
             ${tabs.length > 1 ? `<button onclick="event.stopPropagation(); closeTab(${tIdx})" class="hover:text-rose-400 p-0.5 rounded transition"><i data-lucide="x" class="w-3.5 h-3.5"></i></button>` : ''}
           </div>
         `;
       }).join('') + `
-        <button onclick="addNewTab()" class="bg-stone-900 hover:bg-stone-800 text-amber-200/80 p-2 rounded-full border border-stone-800 shrink-0 flex items-center justify-center transition active:scale-95">
+        <button onclick="addNewTab()" class="bg-stone-900 hover:bg-stone-800 text-amber-200/80 p-1.5 rounded-full border border-stone-800 shrink-0 flex items-center justify-center transition active:scale-95">
           <i data-lucide="plus" class="w-4 h-4"></i>
         </button>
       `;
@@ -1021,10 +1020,9 @@
       }
 
       document.getElementById('live-title').innerText = song.title;
-      document.getElementById('live-info').innerHTML = `原: <b class="text-amber-300/90 text-lg md:text-xl font-mono">${song.key || '-'}</b> | 常用: <b class="text-emerald-300/90 text-lg md:text-xl font-mono">${song.prefKey || '-'}</b> | BPM: <b class="text-stone-300 text-lg md:text-xl font-mono">${song.bpm || '-'}</b>`;
+      document.getElementById('live-info').innerHTML = `原: <b class="text-amber-300/90 font-mono">${song.key || '-'}</b> | 常用: <b class="text-emerald-300/90 font-mono">${song.prefKey || '-'}</b> | BPM: <b class="text-stone-300 font-mono">${song.bpm || '-'}</b>`;
       document.getElementById('live-lyrics-container').innerHTML = generateLyricsHTML(song.lyrics, true);
 
-      // 自動加載歌曲預設時長並重置倒數計時器
       loadSongTimer(song.duration);
     }
 
@@ -1038,10 +1036,10 @@
         const isTag = customTags.some(tag => trimmed.includes(tag.replace(/[\u{1F300}-\u{1F9FF}]/u, '').trim()));
 
         if ((hasEmoji || isTag) && !trimmed.includes('[')) {
-          return `<div class="stage-tag text-amber-200/90 font-serif-tc font-semibold ${isLive ? 'text-2xl py-1' : 'text-lg py-0.5'} flex items-center gap-1.5">${trimmed}</div>`;
+          return `<div class="stage-tag text-amber-200/90 font-serif-tc font-semibold ${isLive ? 'text-xl md:text-2xl py-1' : 'text-lg py-0.5'} flex items-center gap-1.5">${trimmed}</div>`;
         }
 
-        let lineHtml = '<div class="flex flex-wrap items-end gap-x-4 my-2.5">';
+        let lineHtml = '<div class="flex flex-wrap items-end gap-x-3.5 my-2">';
         const regex = /\[(.*?)\]([^\[]*)/g;
         let match;
         let hasChord = false;
@@ -1052,7 +1050,7 @@
 
           lineHtml += `
             <div class="flex flex-col items-start">
-              <span class="chord-label ${isLive ? 'text-amber-200/80 font-mono text-2xl md:text-3xl font-bold' : 'text-amber-200/80 font-mono text-lg font-bold'} leading-none mb-1">${displayedChord}</span>
+              <span class="chord-label ${isLive ? 'text-amber-200/80 font-mono text-xl md:text-3xl font-bold' : 'text-amber-200/80 font-mono text-lg font-bold'} leading-none mb-1">${displayedChord}</span>
               <span>${match[2]}</span>
             </div>
           `;
