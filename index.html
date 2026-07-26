@@ -86,28 +86,37 @@
     </div>
   </div>
 
-  <!-- 🎤 演出模式 (Live Mode) - 全螢幕純黑大字 UI -->
-  <div id="live-view" class="fixed inset-0 bg-black z-50 hidden flex flex-col p-6 overflow-y-auto">
-    <!-- 頂部防誤觸工具列 -->
-    <div class="flex justify-between items-center border-b border-zinc-800 pb-3 mb-6 sticky top-0 bg-black/90 backdrop-blur z-10">
-      <div class="flex items-center gap-3">
-        <span class="bg-red-600 text-white text-xs font-black px-2 py-0.5 rounded tracking-widest uppercase">LIVE MODE</span>
-        <h2 id="live-title" class="text-xl font-black text-white">歌曲名稱</h2>
-        <span id="live-info" class="text-xs font-mono text-zinc-400">Key: C | BPM: 120</span>
-      </div>
-      <div class="flex items-center gap-3">
-        <div class="flex items-center gap-1 bg-zinc-900 px-2 py-1 rounded-lg border border-zinc-800 text-xs text-zinc-300">
-          <span>速度:</span>
-          <button onclick="adjustSpeed(-5)" class="px-2 py-0.5 bg-zinc-800 rounded text-bold">-</button>
-          <span id="speed-label" class="w-6 text-center font-mono">30</span>
-          <button onclick="adjustSpeed(5)" class="px-2 py-0.5 bg-zinc-800 rounded text-bold">+</button>
+  <!-- 🎤 演出模式 (Live Mode) - 整潔防誤觸 UI -->
+  <div id="live-view" class="fixed inset-0 bg-black z-50 hidden flex flex-col p-4 overflow-y-auto">
+    <!-- 頂部精簡控制區 (兩列防止手機過窄造成擠壓) -->
+    <div class="sticky top-0 bg-black/95 backdrop-blur z-10 border-b border-zinc-800 pb-3 mb-6 space-y-2">
+      <!-- 第一列：歌名與標籤 -->
+      <div class="flex items-center justify-between gap-2">
+        <div class="flex items-center gap-2 min-w-0">
+          <span class="shrink-0 bg-red-600 text-white text-[10px] font-black px-1.5 py-0.5 rounded tracking-widest">LIVE</span>
+          <h2 id="live-title" class="text-lg font-bold text-white truncate">歌曲名稱</h2>
         </div>
-        <button id="live-scroll-btn" onclick="toggleScroll()" class="bg-blue-600 text-white px-4 py-1.5 rounded-lg text-xs font-bold">
-          自動滾動
-        </button>
-        <button onclick="exitLiveMode()" class="bg-zinc-800 text-zinc-400 hover:text-white px-3 py-1.5 rounded-lg text-xs border border-zinc-700">
-          退出演出
-        </button>
+        <span id="live-info" class="shrink-0 text-xs font-mono text-zinc-400 bg-zinc-900 px-2 py-1 rounded border border-zinc-800">Key: C | BPM: 120</span>
+      </div>
+
+      <!-- 第二列：控制按鈕 (速度、滾動、退出) -->
+      <div class="flex items-center justify-between gap-2">
+        <!-- 速度微調面板 -->
+        <div class="flex items-center gap-1 bg-zinc-900 px-2 py-1 rounded-lg border border-zinc-800 text-xs text-zinc-300">
+          <span class="text-zinc-400 text-[11px]">速度</span>
+          <button onclick="adjustSpeed(-5)" class="w-6 h-6 bg-zinc-800 hover:bg-zinc-700 active:scale-90 rounded flex items-center justify-center font-bold text-zinc-200">-</button>
+          <span id="speed-label" class="w-6 text-center font-mono font-bold text-blue-400">5</span>
+          <button onclick="adjustSpeed(5)" class="w-6 h-6 bg-zinc-800 hover:bg-zinc-700 active:scale-90 rounded flex items-center justify-center font-bold text-zinc-200">+</button>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <button id="live-scroll-btn" onclick="toggleScroll()" class="bg-blue-600 hover:bg-blue-500 active:scale-95 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition">
+            開始滾動
+          </button>
+          <button onclick="exitLiveMode()" class="bg-zinc-800 hover:bg-zinc-700 active:scale-95 text-zinc-300 px-3 py-1.5 rounded-lg text-xs border border-zinc-700 transition">
+            退出
+          </button>
+        </div>
       </div>
     </div>
 
@@ -190,12 +199,17 @@
     let currentFontSize = 24;
     let isScrolling = false;
     let scrollTimer = null;
-    let scrollSpeed = 30; // 滾動間隔 ms
+    let speedLevel = 5; // 預設速度等級 1~10 (數字越大滾越快)
+
+    // 將速度等級 1~10 轉換為真實定時器 ms (等級越大，ms越短)
+    function getScrollInterval() {
+      return Math.max(10, 60 - (speedLevel * 5));
+    }
 
     window.onload = () => {
       lucide.createIcons();
       
-      // 藍牙腳踏板 / 鍵盤翻頁監聽 (Space, PgUp, PgDn, 上下鍵)
+      // 腳踏板 / 鍵盤翻頁
       window.addEventListener('keydown', (e) => {
         if (e.code === 'Space') {
           e.preventDefault();
@@ -207,7 +221,7 @@
         }
       });
 
-      // 監聽 Firebase 資料庫
+      // Firebase 監聽
       db.ref('songs').on('value', (snapshot) => {
         const data = snapshot.val();
         document.getElementById('sync-status').innerText = '雲端已同步';
@@ -216,15 +230,14 @@
         if (data) {
           songs = Array.isArray(data) ? data : Object.values(data);
         } else {
-          // 預設示範歌曲 (包含標記與 BPM)
           songs = [{
             id: "song-1",
-            title: "愛錯",
-            artist: "王力宏",
-            key: "C#",
-            bpm: "82",
-            capo: "2",
-            lyrics: `🎸 前奏 4拍\n[C]\n我來到你的城市\n🫁 換氣\n[G]\n走過你來時的路\n👀 看觀眾\n[Am]\n是不是都會很孤獨\n🔥 副歌情緒拉起來`
+            title: "愛人錯過",
+            artist: "告五人",
+            key: "C",
+            bpm: "120",
+            capo: "-",
+            lyrics: `作詞：潘雲安  作曲：潘雲安\n\n我肯定在幾百年前就說過愛你\n\n只是你忘了\n\n我也沒想起\n\n⭐ 重點\n\n我肯定在幾百年前就說過愛你`
           }];
           db.ref('songs').set(songs);
         }
@@ -268,7 +281,6 @@
       document.getElementById('live-lyrics-container').innerHTML = generateLyricsHTML(song.lyrics, true);
     }
 
-    // 解析歌詞與和弦 HTML (可自訂高亮演出標記)
     function generateLyricsHTML(lyricsText, isLive = false) {
       if (!lyricsText) return '';
       const lines = lyricsText.split('\n');
@@ -278,7 +290,6 @@
         let match;
         let hasChord = false;
 
-        // 特殊標記高亮顯示（換氣, 看觀眾, Solo等）
         const isTag = /[\u{1F300}-\u{1F9FF}]/u.test(line);
         if (isTag && !line.includes('[')) {
           return `<div class="text-amber-400 font-bold ${isLive ? 'text-2xl py-1' : 'text-lg py-0.5'} flex items-center gap-1">${line}</div>`;
@@ -302,7 +313,6 @@
       }).join('');
     }
 
-    // 快捷標記插入邏輯
     function insertTag(tagText) {
       const textarea = document.getElementById('input-lyrics');
       const start = textarea.selectionStart;
@@ -315,7 +325,6 @@
       textarea.selectionStart = textarea.selectionEnd = start + insertContent.length;
     }
 
-    // 演出模式切換
     function enterLiveMode() {
       document.getElementById('normal-view').classList.add('hidden');
       document.getElementById('live-view').classList.remove('hidden');
@@ -328,12 +337,16 @@
       document.getElementById('normal-view').classList.remove('hidden');
     }
 
+    // 正向調整速度 (加號代表變快)
     function adjustSpeed(delta) {
-      scrollSpeed = Math.max(10, Math.min(100, scrollSpeed - delta));
-      document.getElementById('speed-label').innerText = scrollSpeed;
+      // delta 可以是 +1 或 -1
+      const change = delta > 0 ? 1 : -1;
+      speedLevel = Math.max(1, Math.min(10, speedLevel + change));
+      document.getElementById('speed-label').innerText = speedLevel;
+      
       if (isScrolling) {
         clearInterval(scrollTimer);
-        scrollTimer = setInterval(() => { window.scrollBy({ top: 1, behavior: 'smooth' }); }, scrollSpeed);
+        scrollTimer = setInterval(() => { window.scrollBy({ top: 1, behavior: 'smooth' }); }, getScrollInterval());
       }
     }
 
@@ -348,12 +361,24 @@
       const liveBtn = document.getElementById('live-scroll-btn');
 
       if (isScrolling) {
-        if (btn) btn.classList.replace('bg-blue-600', 'bg-amber-500');
-        if (liveBtn) liveBtn.classList.replace('bg-blue-600', 'bg-amber-500');
-        scrollTimer = setInterval(() => { window.scrollBy({ top: 1, behavior: 'smooth' }); }, scrollSpeed);
+        if (btn) {
+          btn.classList.replace('bg-blue-600', 'bg-amber-500');
+          document.getElementById('scroll-text').innerText = '暫停滾動';
+        }
+        if (liveBtn) {
+          liveBtn.classList.replace('bg-blue-600', 'bg-amber-500');
+          liveBtn.innerText = '暫停滾動';
+        }
+        scrollTimer = setInterval(() => { window.scrollBy({ top: 1, behavior: 'smooth' }); }, getScrollInterval());
       } else {
-        if (btn) btn.classList.replace('bg-amber-500', 'bg-blue-600');
-        if (liveBtn) liveBtn.classList.replace('bg-amber-500', 'bg-blue-600');
+        if (btn) {
+          btn.classList.replace('bg-amber-500', 'bg-blue-600');
+          document.getElementById('scroll-text').innerText = '開始滾動';
+        }
+        if (liveBtn) {
+          liveBtn.classList.replace('bg-amber-500', 'bg-blue-600');
+          liveBtn.innerText = '開始滾動';
+        }
         clearInterval(scrollTimer);
       }
     }
