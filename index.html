@@ -359,15 +359,14 @@
       });
     };
 
-    // 更新下拉選單（包含 BPM、原Key 與 常用Key 資訊）
+    // 更新下拉選單（已移除火符號）
     function updateSongSelectOptions() {
       const select = document.getElementById('song-select');
       
       const sortedSongsWithIndex = songs.map((s, idx) => ({ ...s, originalIndex: idx }))
         .sort((a, b) => (b.viewCount || 0) - (a.viewCount || 0));
 
-      const optionsHtml = sortedSongsWithIndex.map((s, i) => {
-        const prefix = i === 0 && (s.viewCount || 0) > 0 ? '🔥 ' : '';
+      const optionsHtml = sortedSongsWithIndex.map((s) => {
         const bpmStr = s.bpm ? `${s.bpm} ` : '';
         const origKeyStr = s.key && s.key !== '-' ? `原:${s.key}` : '';
         const prefKeyStr = s.prefKey && s.prefKey !== '-' ? `樂:${s.prefKey}` : '';
@@ -375,7 +374,7 @@
         let keyInfo = [origKeyStr, prefKeyStr].filter(Boolean).join(' ');
         if (keyInfo) keyInfo = ` (${keyInfo})`;
 
-        return `<option value="${s.originalIndex}">${prefix}${bpmStr}${s.title}${keyInfo}</option>`;
+        return `<option value="${s.originalIndex}">${bpmStr}${s.title}${keyInfo}</option>`;
       }).join('') + '<option value="new">+ 新增歌曲</option>';
 
       select.innerHTML = optionsHtml;
@@ -618,7 +617,6 @@
         return;
       }
 
-      // 搜尋 Modal 支援 HTML 渲染，因此可以使用彩色標籤
       resultsContainer.innerHTML = filtered.map(item => `
         <div onclick="selectSearchResult(${item.index})" class="p-3 hover:bg-slate-800/80 active:bg-slate-700 cursor-pointer flex justify-between items-center transition">
           <div class="flex items-center gap-2">
