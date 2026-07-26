@@ -67,7 +67,7 @@
         <span id="sync-status" class="text-xs bg-slate-800 text-slate-400 px-3 py-1 rounded-full border border-slate-700 font-mono">連線中...</span>
         
         <!-- 頂部新增歌曲按鈕 -->
-        <button onclick="openNewSongModal()" class="bg-blue-600/90 hover:bg-blue-500 text-white text-xs md:text-sm font-bold px-3.5 py-1.5 rounded-xl border border-blue-500/50 active:scale-95 transition flex items-center gap-1 shadow-md shadow-blue-900/30">
+        <button onclick="createNewSongWithNewTab()" class="bg-blue-600/90 hover:bg-blue-500 text-white text-xs md:text-sm font-bold px-3.5 py-1.5 rounded-xl border border-blue-500/50 active:scale-95 transition flex items-center gap-1 shadow-md shadow-blue-900/30">
           <i data-lucide="plus" class="w-4 h-4"></i> 新增歌曲
         </button>
       </div>
@@ -460,7 +460,7 @@
 
     function autoSaveLyrics() {
       const currentSongIndex = tabs[activeTabIndex];
-      if (!songs[currentSongIndex]) return;
+      if (currentSongIndex === 'new' || !songs[currentSongIndex]) return;
 
       const textareaVal = document.getElementById('input-lyrics').value;
       if (showChords) {
@@ -475,14 +475,14 @@
       const prefKey = document.getElementById('input-pref-key').value;
       const bpm = document.getElementById('input-bpm').value;
 
-      document.getElementById('song-title').innerText = title || '未命名歌曲';
+      document.getElementById('song-title').innerText = title || '新歌曲';
       document.getElementById('song-artist').innerText = artist || '-';
       document.getElementById('song-key').innerText = key;
       document.getElementById('song-pref-key').innerText = prefKey;
       document.getElementById('song-bpm').innerText = bpm || '-';
 
       const currentSongIndex = tabs[activeTabIndex];
-      if (songs[currentSongIndex]) {
+      if (currentSongIndex !== 'new' && songs[currentSongIndex]) {
         songs[currentSongIndex].title = title;
         songs[currentSongIndex].artist = artist;
         songs[currentSongIndex].key = key;
@@ -497,7 +497,11 @@
       const liveContainer = document.getElementById('live-tabs-container');
 
       const tabsHTML = tabs.map((songIndex, tIdx) => {
-        const song = songs[songIndex] || { title: '未選擇' };
+        let title = '新歌曲';
+        if (songIndex !== 'new' && songs[songIndex]) {
+          title = songs[songIndex].title;
+        }
+        
         const isActive = tIdx === activeTabIndex;
         const activeClass = isActive 
           ? 'bg-blue-600 text-white font-extrabold border-blue-500 shadow-lg shadow-blue-900/40' 
@@ -505,7 +509,7 @@
 
         return `
           <div onclick="switchTab(${tIdx})" class="flex items-center gap-2 px-4 py-2.5 rounded-xl border text-base cursor-pointer shrink-0 transition ${activeClass}">
-            <span class="max-w-[120px] truncate">${song.title}</span>
+            <span class="max-w-[120px] truncate">${title}</span>
             ${tabs.length > 1 ? `<button onclick="event.stopPropagation(); closeTab(${tIdx})" class="hover:text-red-300 p-1 rounded-md transition"><i data-lucide="x" class="w-4 h-4"></i></button>` : ''}
           </div>
         `;
@@ -535,6 +539,15 @@
       toggleSearchModal();
     }
 
+    // 專門為「新增歌曲」開立獨立分頁的函式
+    function createNewSongWithNewTab() {
+      tabs.push('new');
+      activeTabIndex = tabs.length - 1;
+      renderTabs();
+      
+      openNewSongForm();
+    }
+
     function closeTab(tIdx) {
       if (tabs.length <= 1) return;
       tabs.splice(tIdx, 1);
@@ -547,7 +560,9 @@
 
     function renderCurrentTabSong() {
       const currentSongIndex = tabs[activeTabIndex];
-      if (songs[currentSongIndex]) {
+      if (currentSongIndex === 'new') {
+        openNewSongForm();
+      } else if (songs[currentSongIndex]) {
         renderSong(songs[currentSongIndex]);
         document.getElementById('song-select').value = currentSongIndex;
         populateRightSidebarForm(songs[currentSongIndex]);
@@ -628,9 +643,8 @@
       if (normalText) normalText.innerText = label;
       if (liveText) liveText.innerText = label;
 
-      // 切換編輯區文字顯示
       const currentSongIndex = tabs[activeTabIndex];
-      if (songs[currentSongIndex]) {
+      if (currentSongIndex !== 'new' && songs[currentSongIndex]) {
         const lyricsInput = document.getElementById('input-lyrics');
         let rawLyrics = songs[currentSongIndex].lyrics || '';
         lyricsInput.value = showChords ? rawLyrics : rawLyrics.replace(/\[.*?\]/g, '');
@@ -652,7 +666,7 @@
 
     function switchSong(value) {
       if (value === 'new') {
-        openNewSongModal();
+        createNewSongWithNewTab();
       } else {
         const index = parseInt(value);
         incrementSongViewCount(index);
@@ -774,7 +788,14 @@
       }
     }
 
-    function openNewSongModal() {
+    // 清空表單供填寫新歌
+    function openNewSongForm() {
+      document.getElementById('song-title').innerText = '新歌曲';
+      document.getElementById('song-artist').innerText = '-';
+      document.getElementById('song-key').innerText = '-';
+      document.getElementById('song-pref-key').innerText = '-';
+      document.getElementById('song-bpm').innerText = '-';
+
       document.getElementById('input-title').value = '';
       document.getElementById('input-artist').value = '';
       document.getElementById('input-key').value = '-';
@@ -794,14 +815,10 @@
       const key = document.getElementById('input-key').value || '-';
       const prefKey = document.getElementById('input-pref-key').value || '-';
       const bpm = document.getElementById('input-bpm').value || '-';
+      const lyrics = document.getElementById('input-lyrics').value || '';
       
       const currentSongIndex = tabs[activeTabIndex];
-      const currentViewCount = (songs[currentSongIndex] && songs[currentSongIndex].viewCount) || 0;
-      
-      let lyrics = songs[currentSongIndex] ? songs[currentSongIndex].lyrics : '';
-      if (showChords) {
-        lyrics = document.getElementById('input-lyrics').value || '';
-      }
+      const currentViewCount = (currentSongIndex !== 'new' && songs[currentSongIndex] && songs[currentSongIndex].viewCount) || 0;
 
       const updatedSong = { 
         id: 'song-' + Date.now(), 
@@ -814,11 +831,12 @@
         viewCount: currentViewCount
       };
 
-      if (document.getElementById('song-select').value !== 'new' && songs[currentSongIndex]) {
+      if (currentSongIndex !== 'new' && songs[currentSongIndex]) {
         songs[currentSongIndex] = updatedSong;
       } else {
+        // 全新歌曲新增入陣列
         songs.push(updatedSong);
-        tabs[activeTabIndex] = songs.length - 1;
+        tabs[activeTabIndex] = songs.length - 1; // 綁定分頁指針到這首新歌
       }
 
       db.ref('songs').set(songs).then(() => {
