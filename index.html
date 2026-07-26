@@ -44,8 +44,6 @@
     .animate-spin-slow {
       animation: spin-slow 12s linear infinite;
     }
-    
-    /* 沉浸式全螢幕 CSS 鎖定 */
     .immersive-fullscreen {
       position: fixed !important;
       top: 0 !important;
@@ -261,7 +259,13 @@
           <h2 id="live-title" class="text-3xl md:text-4xl font-serif-tc font-black text-stone-100 truncate tracking-wide">歌曲名稱</h2>
         </div>
         
-        <div class="shrink-0">
+        <!-- 大幅放大的 Key & BPM 面板 + 現場時鐘與倒數計時器 -->
+        <div class="shrink-0 flex items-center gap-2">
+          <div class="text-right hidden sm:block font-mono bg-stone-900/80 px-3 py-1.5 rounded-xl border border-stone-800">
+            <span id="live-clock" class="text-xs text-stone-400 block">00:00:00</span>
+            <span id="live-timer" onclick="setTimerMinutes()" class="text-amber-300/90 text-xs font-bold cursor-pointer hover:underline">⏱️ 04:00</span>
+          </div>
+
           <span id="live-info" class="text-base md:text-xl font-mono font-medium text-stone-200 bg-stone-900 px-4 py-2 rounded-2xl border border-stone-800 shadow-xl tracking-wide block">
             原: - | 常用: -
           </span>
@@ -272,15 +276,26 @@
       </div>
 
       <div class="flex items-center justify-between gap-2 pt-1">
-        <div class="flex items-center gap-2 bg-stone-900 px-3.5 py-1.5 rounded-xl border border-stone-800 text-xs text-stone-300">
-          <span class="text-stone-500 font-serif-tc">滾動速度</span>
-          <button onclick="adjustSpeed(-1)" class="w-7 h-7 bg-stone-800 hover:bg-stone-700 active:scale-90 rounded-lg flex items-center justify-center font-bold text-stone-200 text-base">-</button>
-          <span id="speed-label" class="w-6 text-center font-mono font-bold text-amber-200/90 text-sm">5</span>
-          <button onclick="adjustSpeed(1)" class="w-7 h-7 bg-stone-800 hover:bg-stone-700 active:scale-90 rounded-lg flex items-center justify-center font-bold text-stone-200 text-base">+</button>
+        <div class="flex items-center gap-2">
+          <!-- 滾動速度控制 -->
+          <div class="flex items-center gap-1.5 bg-stone-900 px-3 py-1.5 rounded-xl border border-stone-800 text-xs text-stone-300">
+            <span class="text-stone-500 font-serif-tc">速度</span>
+            <button onclick="adjustSpeed(-1)" class="w-6 h-6 bg-stone-800 hover:bg-stone-700 active:scale-90 rounded flex items-center justify-center font-bold text-stone-200">-</button>
+            <span id="speed-label" class="w-5 text-center font-mono font-bold text-amber-200/90 text-sm">5</span>
+            <button onclick="adjustSpeed(1)" class="w-6 h-6 bg-stone-800 hover:bg-stone-700 active:scale-90 rounded flex items-center justify-center font-bold text-stone-200">+</button>
+          </div>
+
+          <!-- 🔀 自動移調 (Auto Transpose) 面板 -->
+          <div class="flex items-center gap-1 bg-stone-900 px-2.5 py-1.5 rounded-xl border border-stone-800 text-xs font-mono">
+            <span class="text-stone-500 mr-0.5">移調</span>
+            <button onclick="transposeKey(-1)" class="w-6 h-6 bg-stone-800 hover:bg-stone-700 text-stone-200 rounded flex items-center justify-center font-bold active:scale-90">-</button>
+            <span id="transpose-offset-label" class="w-7 text-center text-amber-300 font-bold">原Key</span>
+            <button onclick="transposeKey(1)" class="w-6 h-6 bg-stone-800 hover:bg-stone-700 text-stone-200 rounded flex items-center justify-center font-bold active:scale-90">+</button>
+            <button onclick="resetTranspose()" class="text-[10px] text-stone-500 hover:text-stone-300 ml-1 underline">重置</button>
+          </div>
         </div>
 
         <div class="flex items-center gap-2">
-          <!-- 強效防跳出全螢幕切換按鈕 -->
           <button id="fullscreen-btn" onclick="toggleFullscreen()" class="bg-stone-900 hover:bg-stone-800 active:scale-95 text-stone-300 px-3.5 py-2 rounded-xl text-xs font-medium border border-stone-800 transition flex items-center gap-1">
             <i data-lucide="maximize" class="w-3.5 h-3.5 text-amber-200/80"></i>
             <span id="fullscreen-btn-text">全螢幕</span>
@@ -308,7 +323,7 @@
     </div>
   </div>
 
-  <!-- 🔍 檢索視窗 Modal (z-[10000] 確保沉浸式全螢幕時依舊正常覆蓋) -->
+  <!-- 🔍 檢索視窗 Modal -->
   <div id="search-modal" class="fixed inset-0 bg-black/80 backdrop-blur-md z-[10000] hidden flex items-start justify-center p-4 pt-20">
     <div class="bg-stone-900 border border-stone-800 rounded-2xl w-full max-w-md p-5 flex flex-col gap-4 shadow-2xl">
       <div class="flex justify-between items-center border-b border-stone-800 pb-3">
@@ -349,6 +364,12 @@
     let showTags = true;
     let isCustomFullscreen = false;
 
+    // 移調與計時器變數
+    let transposeOffset = 0;
+    let timerSeconds = 240; // 預設 4 分鐘 (240秒)
+    let initialTimerSeconds = 240;
+    let timerInterval = null;
+
     let customChords = [
       'C', 'D', 'E', 'F', 'G', 'A', 'B',
       'Cm', 'Dm', 'Em', 'Fm', 'Gm', 'Am', 'Bm',
@@ -366,6 +387,96 @@
       "C", "C# / Db", "D", "D# / Eb", "E", "F", "F# / Gb", "G", "G# / Ab", "A", "A# / Bb", "B",
       "Am", "A#m / Bbm", "Bm", "Cm", "C#m", "Dm", "D#m / Ebm", "Em", "Fm", "F#m", "Gm", "G#m"
     ];
+
+    // --- 樂理和弦自動移調 (Chord Transpose Logic) ---
+    const chromaticScale = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+    const flatScale = ['C', 'Db', 'D', 'Eb', 'E', 'F', 'Gb', 'G', 'Ab', 'A', 'Bb', 'B'];
+
+    function transposeChordToken(chordStr, semitones) {
+      if (semitones === 0 || !chordStr) return chordStr;
+      
+      return chordStr.replace(/([A-G][b#]?)/g, (match) => {
+        let index = chromaticScale.indexOf(match);
+        if (index === -1) index = flatScale.indexOf(match);
+        if (index === -1) return match;
+
+        let newIndex = (index + semitones) % 12;
+        if (newIndex < 0) newIndex += 12;
+        return chromaticScale[newIndex];
+      });
+    }
+
+    function transposeKey(delta) {
+      transposeOffset += delta;
+      updateTransposeUI();
+      const currentSongIndex = tabs[activeTabIndex];
+      if (currentSongIndex !== 'new' && songs[currentSongIndex]) {
+        renderSong(songs[currentSongIndex]);
+      }
+    }
+
+    function resetTranspose() {
+      transposeOffset = 0;
+      updateTransposeUI();
+      const currentSongIndex = tabs[activeTabIndex];
+      if (currentSongIndex !== 'new' && songs[currentSongIndex]) {
+        renderSong(songs[currentSongIndex]);
+      }
+    }
+
+    function updateTransposeUI() {
+      const label = document.getElementById('transpose-offset-label');
+      if (label) {
+        if (transposeOffset === 0) label.innerText = '原Key';
+        else if (transposeOffset > 0) label.innerText = `+${transposeOffset}`;
+        else label.innerText = `${transposeOffset}`;
+      }
+    }
+
+    // --- 現場時鐘與倒數計時器 (Live Clock & Countdown) ---
+    function initLiveClock() {
+      setInterval(() => {
+        const now = new Date();
+        const timeStr = now.toTimeString().split(' ')[0];
+        const clockEl = document.getElementById('live-clock');
+        if (clockEl) clockEl.innerText = timeStr;
+      }, 1000);
+    }
+
+    function setTimerMinutes() {
+      const input = prompt("請輸入歌曲預估時間 (分鐘):", Math.round(initialTimerSeconds / 60));
+      if (input !== null && !isNaN(input) && input > 0) {
+        initialTimerSeconds = parseInt(input) * 60;
+        timerSeconds = initialTimerSeconds;
+        updateTimerDisplay();
+      }
+    }
+
+    function updateTimerDisplay() {
+      const timerEl = document.getElementById('live-timer');
+      if (!timerEl) return;
+      const m = String(Math.floor(timerSeconds / 60)).padStart(2, '0');
+      const s = String(timerSeconds % 60).padStart(2, '0');
+      timerEl.innerText = `⏱️ ${m}:${s}`;
+    }
+
+    function startTimer() {
+      clearInterval(timerInterval);
+      timerInterval = setInterval(() => {
+        if (timerSeconds > 0) {
+          timerSeconds--;
+          updateTimerDisplay();
+        } else {
+          clearInterval(timerInterval);
+        }
+      }, 1000);
+    }
+
+    function resetTimer() {
+      clearInterval(timerInterval);
+      timerSeconds = initialTimerSeconds;
+      updateTimerDisplay();
+    }
 
     function getScrollInterval() {
       return Math.max(10, 90 - (speedLevel * 8));
@@ -393,7 +504,6 @@
       }
     }
 
-    // --- 沉浸式防跳出全螢幕模式 ---
     function toggleFullscreen() {
       const liveView = document.getElementById('live-view');
       isCustomFullscreen = !isCustomFullscreen;
@@ -402,7 +512,6 @@
         liveView.classList.add('immersive-fullscreen');
         document.getElementById('fullscreen-btn-text').innerText = '取消全螢幕';
         
-        // 嘗試同步申請系統全螢幕
         const docEl = document.documentElement;
         const req = docEl.requestFullscreen || docEl.webkitRequestFullScreen;
         if (req) req.call(docEl).catch(() => {});
@@ -418,6 +527,7 @@
     window.onload = () => {
       lucide.createIcons();
       initKeySelectOptions();
+      initLiveClock();
 
       db.ref('custom_chords').on('value', (snapshot) => {
         const data = snapshot.val();
@@ -714,6 +824,8 @@
 
     function switchTab(tIdx) {
       if (isScrolling) toggleLiveScroll();
+      resetTranspose(); // 切換歌曲時重置移調
+      resetTimer();     // 重置歌曲倒數計時器
       activeTabIndex = tIdx;
       renderTabs();
       renderCurrentTabSong();
@@ -914,9 +1026,12 @@
 
         while ((match = regex.exec(line)) !== null) {
           hasChord = true;
+          // 套用自動移調邏輯
+          const displayedChord = transposeOffset !== 0 ? transposeChordToken(match[1], transposeOffset) : match[1];
+
           lineHtml += `
             <div class="flex flex-col items-start">
-              <span class="chord-label ${isLive ? 'text-amber-200/80 font-mono text-2xl md:text-3xl font-bold' : 'text-amber-200/80 font-mono text-lg font-bold'} leading-none mb-1">${match[1]}</span>
+              <span class="chord-label ${isLive ? 'text-amber-200/80 font-mono text-2xl md:text-3xl font-bold' : 'text-amber-200/80 font-mono text-lg font-bold'} leading-none mb-1">${displayedChord}</span>
               <span>${match[2]}</span>
             </div>
           `;
@@ -954,6 +1069,7 @@
 
     function exitLiveMode() {
       if (isScrolling) toggleLiveScroll();
+      clearInterval(timerInterval);
       
       if (isCustomFullscreen) {
         toggleFullscreen();
@@ -983,12 +1099,14 @@
           liveBtn.innerText = '暫停滾動';
         }
         scrollTimer = setInterval(performLiveScroll, getScrollInterval());
+        startTimer(); // 同步開始單曲倒數
       } else {
         if (liveBtn) {
           liveBtn.classList.replace('bg-amber-200/90', 'bg-stone-200');
           liveBtn.innerText = '開始滾動';
         }
         clearInterval(scrollTimer);
+        clearInterval(timerInterval); // 暫停倒數
       }
     }
 
