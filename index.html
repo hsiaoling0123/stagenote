@@ -30,11 +30,11 @@
     .auto-expand-textarea {
       resize: none;
       overflow-y: hidden;
-      min-height: 450px;
+      min-height: 500px;
     }
   </style>
 </head>
-<body class="bg-slate-950 text-slate-100 min-h-screen p-4 pb-28 font-sans select-none">
+<body class="bg-slate-950 text-slate-100 min-h-screen p-4 pb-12 font-sans select-none">
 
   <script>
     // 妳的 Firebase 設定檔
@@ -181,20 +181,6 @@
       </div>
 
     </div>
-
-    <!-- 底部控制列 -->
-    <div class="fixed bottom-0 left-0 right-0 bg-slate-900/95 backdrop-blur-md border-t border-slate-800 p-4 flex justify-around items-center z-40">
-      <button onclick="changeFontSize(-2)" class="p-3 bg-slate-800 rounded-full active:scale-95 transition">
-        <i data-lucide="zoom-out"></i>
-      </button>
-      <button id="scroll-btn" onclick="toggleScroll()" class="flex items-center gap-2 px-6 py-3 rounded-full font-bold bg-blue-600 text-white active:scale-95 transition">
-        <i data-lucide="play" id="scroll-icon"></i>
-        <span id="scroll-text">開始滾動</span>
-      </button>
-      <button onclick="changeFontSize(2)" class="p-3 bg-slate-800 rounded-full active:scale-95 transition">
-        <i data-lucide="zoom-in"></i>
-      </button>
-    </div>
   </div>
 
   <!-- 🎤 演出模式 (Live Mode) -->
@@ -231,7 +217,7 @@
           <button onclick="toggleTags()" class="bg-zinc-900 hover:bg-zinc-800 active:scale-95 text-zinc-300 px-2 py-1.5 rounded-lg text-xs border border-zinc-800 transition">
             <span id="live-tag-toggle-text">標記: 顯</span>
           </button>
-          <button id="live-scroll-btn" onclick="toggleScroll()" class="bg-blue-600 hover:bg-blue-500 active:scale-95 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition">
+          <button id="live-scroll-btn" onclick="toggleLiveScroll()" class="bg-blue-600 hover:bg-blue-500 active:scale-95 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition">
             開始滾動
           </button>
           <button onclick="exitLiveMode()" class="bg-zinc-800 hover:bg-zinc-700 active:scale-95 text-zinc-300 px-2.5 py-1.5 rounded-lg text-xs border border-zinc-700 transition">
@@ -270,7 +256,6 @@
     let tabs = [0];
     let activeTabIndex = 0;
     
-    let currentFontSize = 24;
     let isScrolling = false;
     let scrollTimer = null;
     let speedLevel = 5;
@@ -294,14 +279,10 @@
       return Math.max(10, 90 - (speedLevel * 8));
     }
 
-    function performScroll() {
+    function performLiveScroll() {
       const liveView = document.getElementById('live-view');
-      const isLiveActive = !liveView.classList.contains('hidden');
-
-      if (isLiveActive) {
+      if (liveView && !liveView.classList.contains('hidden')) {
         liveView.scrollTop += 1;
-      } else {
-        window.scrollBy(0, 1);
       }
     }
 
@@ -313,17 +294,6 @@
     window.onload = () => {
       lucide.createIcons();
       initKeySelectOptions();
-      
-      window.addEventListener('keydown', (e) => {
-        if (e.code === 'Space') {
-          e.preventDefault();
-          toggleScroll();
-        } else if (e.code === 'PageDown' || e.code === 'ArrowDown') {
-          scrollPage(1);
-        } else if (e.code === 'PageUp' || e.code === 'ArrowUp') {
-          scrollPage(-1);
-        }
-      });
 
       // 監聽 Firebase 標記清單
       db.ref('custom_tags').on('value', (snapshot) => {
@@ -366,7 +336,6 @@
     function updateSongSelectOptions() {
       const select = document.getElementById('song-select');
       
-      // 將歌曲附加原始 index 後依據 viewCount 進行降序排序
       const sortedSongsWithIndex = songs.map((s, idx) => ({ ...s, originalIndex: idx }))
         .sort((a, b) => (b.viewCount || 0) - (a.viewCount || 0));
 
@@ -378,7 +347,6 @@
       select.innerHTML = optionsHtml;
     }
 
-    // 增加了點擊使用次數統計 (+1)
     function incrementSongViewCount(index) {
       if (songs[index]) {
         songs[index].viewCount = (songs[index].viewCount || 0) + 1;
@@ -524,7 +492,7 @@
     }
 
     function switchTab(tIdx) {
-      if (isScrolling) toggleScroll();
+      if (isScrolling) toggleLiveScroll();
       activeTabIndex = tIdx;
       renderTabs();
       renderCurrentTabSong();
@@ -585,7 +553,6 @@
       const query = document.getElementById('search-input').value.toLowerCase().trim();
       const resultsContainer = document.getElementById('search-results');
       
-      // 按使用次數排序後的搜尋結果
       const filtered = songs.map((song, index) => ({ song, index }))
         .sort((a, b) => (b.song.viewCount || 0) - (a.song.viewCount || 0))
         .filter(item => {
@@ -636,24 +603,12 @@
       showTags = !showTags;
       document.body.classList.toggle('hide-tags', !showTags);
 
-      const normalText = document.getElementById('chord-toggle-text');
-      const liveText = document.getElementById('live-chord-toggle-text');
+      const normalText = document.getElementById('tag-toggle-text');
+      const liveText = document.getElementById('live-tag-toggle-text');
 
       const label = showTags ? '標記: 顯' : '標記: 隱';
       if (normalText) normalText.innerText = label;
       if (liveText) liveText.innerText = label;
-    }
-
-    function scrollPage(direction) {
-      const liveView = document.getElementById('live-view');
-      const isLiveActive = !liveView.classList.contains('hidden');
-      const amount = (window.innerHeight * 0.7) * direction;
-
-      if (isLiveActive) {
-        liveView.scrollBy({ top: amount, behavior: 'smooth' });
-      } else {
-        window.scrollBy({ top: amount, behavior: 'smooth' });
-      }
     }
 
     function switchSong(value) {
@@ -743,7 +698,7 @@
     }
 
     function exitLiveMode() {
-      if (isScrolling) toggleScroll();
+      if (isScrolling) toggleLiveScroll();
       document.getElementById('live-view').classList.add('hidden');
       document.getElementById('normal-view').classList.remove('hidden');
     }
@@ -754,36 +709,21 @@
       
       if (isScrolling) {
         clearInterval(scrollTimer);
-        scrollTimer = setInterval(performScroll, getScrollInterval());
+        scrollTimer = setInterval(performLiveScroll, getScrollInterval());
       }
     }
 
-    function changeFontSize(delta) {
-      currentFontSize = Math.min(Math.max(18, currentFontSize + delta), 48);
-      document.getElementById('input-lyrics').style.fontSize = currentFontSize + 'px';
-      adjustTextareaHeight(document.getElementById('input-lyrics'));
-    }
-
-    function toggleScroll() {
+    function toggleLiveScroll() {
       isScrolling = !isScrolling;
-      const btn = document.getElementById('scroll-btn');
       const liveBtn = document.getElementById('live-scroll-btn');
 
       if (isScrolling) {
-        if (btn) {
-          btn.classList.replace('bg-blue-600', 'bg-amber-500');
-          document.getElementById('scroll-text').innerText = '暫停滾動';
-        }
         if (liveBtn) {
           liveBtn.classList.replace('bg-blue-600', 'bg-amber-500');
           liveBtn.innerText = '暫停滾動';
         }
-        scrollTimer = setInterval(performScroll, getScrollInterval());
+        scrollTimer = setInterval(performLiveScroll, getScrollInterval());
       } else {
-        if (btn) {
-          btn.classList.replace('bg-amber-500', 'bg-blue-600');
-          document.getElementById('scroll-text').innerText = '開始滾動';
-        }
         if (liveBtn) {
           liveBtn.classList.replace('bg-amber-500', 'bg-blue-600');
           liveBtn.innerText = '開始滾動';
