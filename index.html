@@ -17,7 +17,7 @@
     *, html, body {
       touch-action: manipulation;
     }
-    /* 文青襯線體風格可選 */
+    /* 文青襯線體風格 */
     .font-serif-tc {
       font-family: 'Noto Serif TC', Georgia, serif;
     }
@@ -43,9 +43,43 @@
       overflow-y: hidden;
       min-height: 500px;
     }
+    /* 慢速唱片旋轉動畫 */
+    @keyframes spin-slow {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+    .animate-spin-slow {
+      animation: spin-slow 12s linear infinite;
+    }
   </style>
 </head>
 <body class="bg-zinc-950 text-stone-200 min-h-screen p-4 md:p-8 pb-16 font-sans select-none antialiased">
+
+  <!-- 🌟 載入中：歌手專屬打氣 Splash 畫面 -->
+  <div id="loading-splash" class="fixed inset-0 bg-zinc-950 z-[100] flex flex-col items-center justify-center p-6 transition-opacity duration-700 opacity-100">
+    <div class="flex flex-col items-center max-w-sm text-center gap-6">
+      <!-- 慢速旋轉黑膠圖示 -->
+      <div class="relative flex items-center justify-center">
+        <div class="w-20 h-20 rounded-full bg-stone-900 border border-stone-800 flex items-center justify-center shadow-2xl animate-spin-slow">
+          <i data-lucide="disc" class="w-10 h-10 text-amber-200/80"></i>
+        </div>
+        <div class="absolute w-4 h-4 rounded-full bg-zinc-950 border border-stone-800"></div>
+      </div>
+
+      <div class="space-y-3">
+        <h2 class="text-xs font-mono tracking-widest text-stone-500 uppercase">StageNote · Live Assistant</h2>
+        <p id="cheer-message" class="text-lg md:text-xl font-serif-tc font-medium text-stone-200 leading-relaxed tracking-wider px-2">
+          今夜的舞台屬於妳，放輕鬆享受音樂吧。
+        </p>
+      </div>
+
+      <!-- 載入指示微動效 -->
+      <div class="flex items-center gap-1.5 pt-4">
+        <span class="w-1.5 h-1.5 rounded-full bg-amber-200/80 animate-ping"></span>
+        <span class="text-[11px] font-mono text-stone-500 tracking-wider">雲端曲庫同步中...</span>
+      </div>
+    </div>
+  </div>
 
   <script>
     // 妳的 Firebase 設定檔
@@ -61,11 +95,29 @@
 
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
+
+    // 隨機打氣小語庫
+    const cheerMessages = [
+      "今夜的舞台屬於妳，放輕鬆享受音樂吧。",
+      "深呼吸，把心交給旋律，妳會唱得很棒！",
+      "每一個音符都是妳的故事，今晚盡情綻放。",
+      "觀眾正期待著妳的聲音，上台享受這個時刻吧。",
+      "台下的掌聲正為妳準備著，加油！",
+      "相信妳的歌聲，今晚妳是最耀眼的存在。",
+      "享受每一個樂句，把溫暖唱進大家心裡。"
+    ];
+
+    // 初始化隨機選一句小語
+    document.addEventListener("DOMContentLoaded", () => {
+      const randomIndex = Math.floor(Math.random() * cheerMessages.length);
+      const cheerEl = document.getElementById('cheer-message');
+      if (cheerEl) cheerEl.innerText = cheerMessages[randomIndex];
+    });
   </script>
 
   <!-- 常規模式 UI -->
   <div id="normal-view" class="max-w-6xl mx-auto">
-    <!-- 頂部功能導覽 (文青極簡風格) -->
+    <!-- 頂部功能導覽 -->
     <header class="flex flex-wrap justify-between items-center border-b border-stone-800 pb-5 mb-6 gap-4">
       <div class="flex items-center gap-3.5">
         <div class="w-8 h-8 rounded-full bg-stone-800 border border-stone-700 flex items-center justify-center text-amber-200/90">
@@ -202,7 +254,7 @@
     </div>
   </div>
 
-  <!-- 🎤 演出模式 (Live Mode - 深邃舞台風) -->
+  <!-- 🎤 演出模式 (Live Mode) -->
   <div id="live-view" class="fixed inset-0 bg-black z-50 hidden flex flex-col h-screen w-screen overflow-hidden">
     
     <!-- 100% 強制獨立頂層工具欄 -->
@@ -249,7 +301,7 @@
       </div>
     </div>
 
-    <!-- 獨立滾動歌詞區域 (文青歌照風格) -->
+    <!-- 獨立滾動歌詞區域 -->
     <div id="live-scroll-area" class="flex-1 overflow-y-auto px-6 md:px-12 pt-8 pb-60">
       <div id="live-lyrics-container" class="space-y-8 text-3xl md:text-4xl font-serif-tc font-semibold tracking-wider text-stone-100 leading-relaxed">
       </div>
@@ -277,7 +329,7 @@
   </div>
 
   <script>
-    // 攔截 Safari / Chrome 觸控雙擊縮放 (Double-tap zoom prevention)
+    // 攔截 Safari / Chrome 觸控雙擊縮放
     let lastTouchEnd = 0;
     document.addEventListener('touchend', function (event) {
       const now = (new Date()).getTime();
@@ -297,7 +349,6 @@
     let showChords = true;
     let showTags = true;
 
-    // 預設文青風格標記清單
     let customTags = [
       '🫁 換氣', '🎤 Mic拉遠', '🎤 Mic靠近', '🔥 情緒', '❤️ 微笑', 
       '👀 看觀眾', '🤝 互動', '🎸 吉他Solo', '🥁 鼓Fill', '⬆️ 升Key', 
@@ -324,6 +375,17 @@
     function adjustTextareaHeight(el) {
       el.style.height = 'auto';
       el.style.height = el.scrollHeight + 'px';
+    }
+
+    // 隱藏 Splash 畫面的函式
+    function hideLoadingSplash() {
+      const splash = document.getElementById('loading-splash');
+      if (splash) {
+        splash.classList.add('opacity-0');
+        setTimeout(() => {
+          splash.classList.add('hidden');
+        }, 700);
+      }
     }
 
     window.onload = () => {
@@ -364,6 +426,9 @@
         updateSongSelectOptions();
         renderTabs();
         renderCurrentTabSong();
+
+        // 完成雲端同步後，優雅淡出打氣 Splash 畫面
+        hideLoadingSplash();
       });
     };
 
