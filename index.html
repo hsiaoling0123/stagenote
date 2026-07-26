@@ -106,7 +106,7 @@
                 <i data-lucide="search" class="w-4 h-4 text-blue-400"></i>
                 <span>搜尋</span>
               </button>
-              <select id="song-select" onchange="switchSong(this.value)" class="bg-slate-800 text-slate-200 text-sm border border-slate-700 rounded-xl p-2.5 focus:outline-none max-w-[140px] truncate">
+              <select id="song-select" onchange="switchSong(this.value)" class="bg-slate-800 text-slate-200 text-sm border border-slate-700 rounded-xl p-2.5 focus:outline-none max-w-[200px] truncate">
               </select>
             </div>
           </div>
@@ -359,7 +359,7 @@
       });
     };
 
-    // 更新下拉選單（按最常使用次數 ViewCount 排序）
+    // 更新下拉選單（包含 BPM、原Key 與 常用Key 資訊）
     function updateSongSelectOptions() {
       const select = document.getElementById('song-select');
       
@@ -368,7 +368,14 @@
 
       const optionsHtml = sortedSongsWithIndex.map((s, i) => {
         const prefix = i === 0 && (s.viewCount || 0) > 0 ? '🔥 ' : '';
-        return `<option value="${s.originalIndex}">${prefix}${s.title}</option>`;
+        const bpmStr = s.bpm ? `${s.bpm} ` : '';
+        const origKeyStr = s.key && s.key !== '-' ? `原:${s.key}` : '';
+        const prefKeyStr = s.prefKey && s.prefKey !== '-' ? `樂:${s.prefKey}` : '';
+        
+        let keyInfo = [origKeyStr, prefKeyStr].filter(Boolean).join(' ');
+        if (keyInfo) keyInfo = ` (${keyInfo})`;
+
+        return `<option value="${s.originalIndex}">${prefix}${bpmStr}${s.title}${keyInfo}</option>`;
       }).join('') + '<option value="new">+ 新增歌曲</option>';
 
       select.innerHTML = optionsHtml;
@@ -611,13 +618,20 @@
         return;
       }
 
+      // 搜尋 Modal 支援 HTML 渲染，因此可以使用彩色標籤
       resultsContainer.innerHTML = filtered.map(item => `
         <div onclick="selectSearchResult(${item.index})" class="p-3 hover:bg-slate-800/80 active:bg-slate-700 cursor-pointer flex justify-between items-center transition">
-          <div>
-            <div class="text-base font-bold text-slate-100">${item.song.title}</div>
-            <div class="text-xs text-slate-400">${item.song.artist || '-'}</div>
+          <div class="flex items-center gap-2">
+            ${item.song.bpm ? `<span class="text-xs font-mono font-bold text-blue-400 bg-blue-950/80 border border-blue-800/60 px-2 py-0.5 rounded-md">${item.song.bpm}</span>` : ''}
+            <div>
+              <div class="text-base font-bold text-slate-100">${item.song.title}</div>
+              <div class="text-xs text-slate-400">${item.song.artist || '-'}</div>
+            </div>
           </div>
-          <span class="text-xs font-mono bg-slate-800 text-slate-300 px-2.5 py-1 rounded-lg border border-slate-700">常用: ${item.song.prefKey || item.song.key || '-'}</span>
+          <div class="flex items-center gap-1.5 text-xs font-mono">
+            ${item.song.key && item.song.key !== '-' ? `<span class="bg-slate-800 text-yellow-400 px-2 py-1 rounded border border-slate-700 font-bold">原:${item.song.key}</span>` : ''}
+            ${item.song.prefKey && item.song.prefKey !== '-' ? `<span class="bg-slate-800 text-emerald-400 px-2 py-1 rounded border border-slate-700 font-bold">樂:${item.song.prefKey}</span>` : ''}
+          </div>
         </div>
       `).join('');
     }
