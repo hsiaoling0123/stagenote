@@ -69,7 +69,7 @@
       <div class="space-y-3">
         <h2 class="text-xs font-mono tracking-widest text-stone-500 uppercase">StageNote · Live Assistant</h2>
         <p id="cheer-message" class="text-lg md:text-xl font-serif-tc font-medium text-stone-200 leading-relaxed tracking-wider px-2">
-          今夜的舞台屬於妳，放輕鬆享受音樂吧。
+          今夜的舞台屬於你，放輕鬆享受音樂吧。
         </p>
       </div>
 
@@ -82,7 +82,7 @@
   </div>
 
   <script>
-    // 妳的 Firebase 設定檔
+    // Firebase 設定檔
     const firebaseConfig = {
       apiKey: "AIzaSyCSC1b6OVWEdNajEG2awFnvWQ5Wb84S620",
       authDomain: "stagenote-25687.firebaseapp.com",
@@ -96,14 +96,14 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
-    // 隨機打氣小語庫
+    // 隨機打氣小語庫（已全數更換為「你」）
     const cheerMessages = [
-      "今夜的舞台屬於妳，放輕鬆享受音樂吧。",
-      "深呼吸，把心交給旋律，妳會唱得很棒！",
-      "每一個音符都是妳的故事，今晚盡情綻放。",
-      "觀眾正期待著妳的聲音，上台享受這個時刻吧。",
-      "台下的掌聲正為妳準備著，加油！",
-      "相信妳的歌聲，今晚妳是最耀眼的存在。",
+      "今夜的舞台屬於你，放輕鬆享受音樂吧。",
+      "深呼吸，把心交給旋律，你會唱得很棒！",
+      "每一個音符都是你的故事，今晚盡情綻放。",
+      "觀眾正期待著你的聲音，上台享受這個時刻吧。",
+      "台下的掌聲正為你準備著，加油！",
+      "相信你的歌聲，今晚你是最耀眼的存在。",
       "享受每一個樂句，把溫暖唱進大家心裡。"
     ];
 
@@ -182,7 +182,7 @@
           <div class="text-[11px] text-stone-500 mb-3 font-serif-tc flex justify-between items-center tracking-widest">
             <span>✎ 點擊下方隨心編輯歌詞 (支援 [C] 和弦標記)</span>
           </div>
-          <textarea id="input-lyrics" oninput="autoSaveLyrics(); adjustTextareaHeight(this);" class="auto-expand-textarea w-full bg-transparent text-xl md:text-2xl text-stone-200 font-serif-tc leading-relaxed tracking-wide focus:outline-none placeholder-stone-700" placeholder="寫下妳的歌詞..."></textarea>
+          <textarea id="input-lyrics" oninput="autoSaveLyrics(); adjustTextareaHeight(this);" class="auto-expand-textarea w-full bg-transparent text-xl md:text-2xl text-stone-200 font-serif-tc leading-relaxed tracking-wide focus:outline-none placeholder-stone-700" placeholder="寫下你的歌詞..."></textarea>
         </div>
       </div>
 
