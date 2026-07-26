@@ -189,9 +189,9 @@
   </div>
 
   <!-- 🎤 演出模式 (Live Mode) -->
-  <div id="live-view" class="fixed inset-0 bg-black z-50 hidden flex flex-col p-4 pt-36 overflow-y-auto">
+  <div id="live-view" class="fixed inset-0 bg-black z-50 hidden flex flex-col">
     
-    <!-- 固定懸浮最上層工具欄 -->
+    <!-- 懸浮最上層固定工具欄 (Fixed Top) -->
     <div class="fixed top-0 left-0 right-0 bg-black/95 backdrop-blur-xl z-50 border-b border-zinc-800 p-4 space-y-2.5 shadow-2xl">
       <div class="flex items-center justify-between gap-2">
         <div class="flex items-center gap-2 min-w-0">
@@ -234,8 +234,10 @@
       </div>
     </div>
 
-    <!-- 歌詞呈現區 -->
-    <div id="live-lyrics-container" class="flex-1 space-y-8 text-3xl font-bold tracking-wide text-white pb-60">
+    <!-- 獨立滾動歌詞區域 (pt-44 確保不被頂部懸浮列遮擋) -->
+    <div id="live-scroll-area" class="flex-1 overflow-y-auto px-6 pt-44 pb-60">
+      <div id="live-lyrics-container" class="space-y-8 text-3xl font-bold tracking-wide text-white">
+      </div>
     </div>
   </div>
 
@@ -298,9 +300,9 @@
     }
 
     function performLiveScroll() {
-      const liveView = document.getElementById('live-view');
-      if (liveView && !liveView.classList.contains('hidden')) {
-        liveView.scrollTop += 1;
+      const liveScrollArea = document.getElementById('live-scroll-area');
+      if (liveScrollArea) {
+        liveScrollArea.scrollTop += 1;
       }
     }
 
@@ -725,7 +727,9 @@
     function enterLiveMode() {
       document.getElementById('normal-view').classList.add('hidden');
       document.getElementById('live-view').classList.remove('hidden');
-      document.getElementById('live-view').scrollTop = 0;
+      
+      const liveScrollArea = document.getElementById('live-scroll-area');
+      if (liveScrollArea) liveScrollArea.scrollTop = 0;
     }
 
     function exitLiveMode() {
