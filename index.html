@@ -77,7 +77,7 @@
 
     <div class="flex flex-col md:flex-row gap-6 items-start relative">
       
-      <div class="w-full md:w-7/12 flex flex-col gap-4">
+      <div class="w-full md:w-6/12 lg:w-7/12 flex flex-col gap-4">
         <div class="bg-slate-900 border border-slate-800 rounded-xl p-4 shadow-lg">
           <div class="flex justify-between items-start mb-3 gap-2">
             <div>
@@ -108,65 +108,67 @@
         </div>
       </div>
 
-      <div class="w-full md:w-5/12 bg-slate-900 border border-slate-800 rounded-2xl p-5 flex flex-col gap-4 shadow-2xl sticky top-4 h-fit z-30 shrink-0">
-        <div class="flex justify-between items-center border-b border-slate-800 pb-2">
-          <h3 class="text-base font-bold text-white flex items-center gap-2">
-            <i data-lucide="sliders" class="w-4 h-4 text-blue-400"></i>
+      <div class="w-full md:w-6/12 lg:w-5/12 bg-slate-900 border border-slate-800 rounded-2xl p-6 flex flex-col gap-5 shadow-2xl sticky top-4 h-fit z-30 shrink-0">
+        <div class="flex justify-between items-center border-b border-slate-800 pb-3">
+          <h3 class="text-lg font-bold text-white flex items-center gap-2">
+            <i data-lucide="sliders" class="w-5 h-5 text-blue-400"></i>
             歌曲參數與工具
           </h3>
-          <span class="text-xs text-emerald-400 font-mono">即時同步</span>
+          <span class="text-xs text-emerald-400 font-mono font-semibold bg-emerald-950/60 px-2.5 py-1 rounded-full border border-emerald-800">即時同步</span>
         </div>
 
         <div class="grid grid-cols-2 gap-3">
           <div>
-            <label class="text-xs text-slate-400 mb-1 block">歌名</label>
-            <input id="input-title" type="text" oninput="autoSaveField()" class="w-full bg-slate-800 border border-slate-700 rounded-lg p-2 text-sm text-white focus:outline-none focus:border-blue-500">
+            <label class="text-sm font-medium text-slate-300 mb-1.5 block">歌名</label>
+            <input id="input-title" type="text" oninput="autoSaveField()" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2.5 text-base text-white focus:outline-none focus:border-blue-500 transition">
           </div>
           <div>
-            <label class="text-xs text-slate-400 mb-1 block">歌手</label>
-            <input id="input-artist" type="text" oninput="autoSaveField()" class="w-full bg-slate-800 border border-slate-700 rounded-lg p-2 text-sm text-white focus:outline-none focus:border-blue-500">
+            <label class="text-sm font-medium text-slate-300 mb-1.5 block">歌手</label>
+            <input id="input-artist" type="text" oninput="autoSaveField()" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2.5 text-base text-white focus:outline-none focus:border-blue-500 transition">
           </div>
         </div>
 
-        <div class="grid grid-cols-3 gap-2">
+        <div class="grid grid-cols-3 gap-2.5">
           <div>
-            <label class="text-xs text-slate-400 mb-1 block">原 Key</label>
-            <select id="input-key" onchange="autoSaveField()" class="w-full bg-slate-800 border border-slate-700 rounded-lg p-2 text-sm text-white focus:outline-none focus:border-blue-500">
+            <label class="text-xs font-medium text-slate-300 mb-1.5 block">原 Key</label>
+            <select id="input-key" onchange="autoSaveField()" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-2.5 py-2.5 text-base font-bold text-yellow-400 focus:outline-none focus:border-blue-500 transition">
             </select>
           </div>
           <div>
-            <label class="text-xs text-slate-400 mb-1 block">常用 Key</label>
-            <select id="input-pref-key" onchange="autoSaveField()" class="w-full bg-slate-800 border border-slate-700 rounded-lg p-2 text-sm text-white focus:outline-none focus:border-blue-500">
+            <label class="text-xs font-medium text-slate-300 mb-1.5 block">常用 Key</label>
+            <select id="input-pref-key" onchange="autoSaveField()" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-2.5 py-2.5 text-base font-bold text-emerald-400 focus:outline-none focus:border-blue-500 transition">
             </select>
           </div>
           <div>
-            <label class="text-xs text-slate-400 mb-1 block">BPM</label>
-            <input id="input-bpm" type="text" placeholder="120" oninput="autoSaveField()" class="w-full bg-slate-800 border border-slate-700 rounded-lg p-2 text-sm text-white focus:outline-none focus:border-blue-500">
+            <label class="text-xs font-medium text-slate-300 mb-1.5 block">BPM</label>
+            <input id="input-bpm" type="text" placeholder="120" oninput="autoSaveField()" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-2.5 py-2.5 text-base font-bold text-blue-400 focus:outline-none focus:border-blue-500 transition">
           </div>
         </div>
 
         <div>
-          <label class="text-xs text-blue-400 mb-1.5 block font-bold">⚡ 點擊快速插入演出標記：</label>
-          <div class="flex flex-wrap gap-1.5 max-h-48 overflow-y-auto p-2 bg-slate-950 rounded-lg border border-slate-800">
-            <button onclick="insertTag('🫁 換氣')" class="bg-slate-800 hover:bg-slate-700 text-xs px-2.5 py-1.5 rounded text-slate-200 border border-slate-700">🫁 換氣</button>
-            <button onclick="insertTag('🎤 Mic拉遠')" class="bg-slate-800 hover:bg-slate-700 text-xs px-2.5 py-1.5 rounded text-slate-200 border border-slate-700">🎤 Mic拉遠</button>
-            <button onclick="insertTag('🎤 Mic靠近')" class="bg-slate-800 hover:bg-slate-700 text-xs px-2.5 py-1.5 rounded text-slate-200 border border-slate-700">🎤 Mic靠近</button>
-            <button onclick="insertTag('🔥 情緒')" class="bg-slate-800 hover:bg-slate-700 text-xs px-2.5 py-1.5 rounded text-slate-200 border border-slate-700">🔥 情緒</button>
-            <button onclick="insertTag('❤️ 微笑')" class="bg-slate-800 hover:bg-slate-700 text-xs px-2.5 py-1.5 rounded text-slate-200 border border-slate-700">❤️ 微笑</button>
-            <button onclick="insertTag('👀 看觀眾')" class="bg-slate-800 hover:bg-slate-700 text-xs px-2.5 py-1.5 rounded text-slate-200 border border-slate-700">👀 看觀眾</button>
-            <button onclick="insertTag('🤝 互動')" class="bg-slate-800 hover:bg-slate-700 text-xs px-2.5 py-1.5 rounded text-slate-200 border border-slate-700">🤝 互動</button>
-            <button onclick="insertTag('🎸 吉他Solo')" class="bg-slate-800 hover:bg-slate-700 text-xs px-2.5 py-1.5 rounded text-slate-200 border border-slate-700">🎸 Solo</button>
-            <button onclick="insertTag('🥁 鼓Fill')" class="bg-slate-800 hover:bg-slate-700 text-xs px-2.5 py-1.5 rounded text-slate-200 border border-slate-700">🥁 鼓Fill</button>
-            <button onclick="insertTag('⬆️ 升Key')" class="bg-slate-800 hover:bg-slate-700 text-xs px-2.5 py-1.5 rounded text-slate-200 border border-slate-700">⬆️ 升Key</button>
-            <button onclick="insertTag('⬇️ 降Key')" class="bg-slate-800 hover:bg-slate-700 text-xs px-2.5 py-1.5 rounded text-slate-200 border border-slate-700">⬇️ 降Key</button>
-            <button onclick="insertTag('⭐ 重點')" class="bg-slate-800 hover:bg-slate-700 text-xs px-2.5 py-1.5 rounded text-slate-200 border border-slate-700">⭐ 重點</button>
-            <button onclick="insertTag('⚠️ 小心高音')" class="bg-slate-800 hover:bg-slate-700 text-xs px-2.5 py-1.5 rounded text-slate-200 border border-slate-700">⚠️ 小心高音</button>
-            <button onclick="insertTag('😌 放輕鬆')" class="bg-slate-800 hover:bg-slate-700 text-xs px-2.5 py-1.5 rounded text-slate-200 border border-slate-700">😌 放輕鬆</button>
+          <label class="text-sm text-blue-400 mb-2 block font-bold flex items-center gap-1">
+            <span>⚡ 快速插入演出標記</span>
+          </label>
+          <div class="flex flex-wrap gap-2 max-h-56 overflow-y-auto p-3 bg-slate-950 rounded-xl border border-slate-800">
+            <button onclick="insertTag('🫁 換氣')" class="bg-slate-800 hover:bg-slate-700 active:scale-95 text-sm font-medium px-3 py-2 rounded-lg text-slate-100 border border-slate-700 transition">🫁 換氣</button>
+            <button onclick="insertTag('🎤 Mic拉遠')" class="bg-slate-800 hover:bg-slate-700 active:scale-95 text-sm font-medium px-3 py-2 rounded-lg text-slate-100 border border-slate-700 transition">🎤 Mic拉遠</button>
+            <button onclick="insertTag('🎤 Mic靠近')" class="bg-slate-800 hover:bg-slate-700 active:scale-95 text-sm font-medium px-3 py-2 rounded-lg text-slate-100 border border-slate-700 transition">🎤 Mic靠近</button>
+            <button onclick="insertTag('🔥 情緒')" class="bg-slate-800 hover:bg-slate-700 active:scale-95 text-sm font-medium px-3 py-2 rounded-lg text-slate-100 border border-slate-700 transition">🔥 情緒</button>
+            <button onclick="insertTag('❤️ 微笑')" class="bg-slate-800 hover:bg-slate-700 active:scale-95 text-sm font-medium px-3 py-2 rounded-lg text-slate-100 border border-slate-700 transition">❤️ 微笑</button>
+            <button onclick="insertTag('👀 看觀眾')" class="bg-slate-800 hover:bg-slate-700 active:scale-95 text-sm font-medium px-3 py-2 rounded-lg text-slate-100 border border-slate-700 transition">👀 看觀眾</button>
+            <button onclick="insertTag('🤝 互動')" class="bg-slate-800 hover:bg-slate-700 active:scale-95 text-sm font-medium px-3 py-2 rounded-lg text-slate-100 border border-slate-700 transition">🤝 互動</button>
+            <button onclick="insertTag('🎸 吉他Solo')" class="bg-slate-800 hover:bg-slate-700 active:scale-95 text-sm font-medium px-3 py-2 rounded-lg text-slate-100 border border-slate-700 transition">🎸 Solo</button>
+            <button onclick="insertTag('🥁 鼓Fill')" class="bg-slate-800 hover:bg-slate-700 active:scale-95 text-sm font-medium px-3 py-2 rounded-lg text-slate-100 border border-slate-700 transition">🥁 鼓Fill</button>
+            <button onclick="insertTag('⬆️ 升Key')" class="bg-slate-800 hover:bg-slate-700 active:scale-95 text-sm font-medium px-3 py-2 rounded-lg text-slate-100 border border-slate-700 transition">⬆️ 升Key</button>
+            <button onclick="insertTag('⬇️ 降Key')" class="bg-slate-800 hover:bg-slate-700 active:scale-95 text-sm font-medium px-3 py-2 rounded-lg text-slate-100 border border-slate-700 transition">⬇️ 降Key</button>
+            <button onclick="insertTag('⭐ 重點')" class="bg-slate-800 hover:bg-slate-700 active:scale-95 text-sm font-medium px-3 py-2 rounded-lg text-slate-100 border border-slate-700 transition">⭐ 重點</button>
+            <button onclick="insertTag('⚠️ 小心高音')" class="bg-slate-800 hover:bg-slate-700 active:scale-95 text-sm font-medium px-3 py-2 rounded-lg text-slate-100 border border-slate-700 transition">⚠️ 小心高音</button>
+            <button onclick="insertTag('😌 放輕鬆')" class="bg-slate-800 hover:bg-slate-700 active:scale-95 text-sm font-medium px-3 py-2 rounded-lg text-slate-100 border border-slate-700 transition">😌 放輕鬆</button>
           </div>
         </div>
 
-        <button onclick="saveCurrentSong()" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-2.5 rounded-xl transition active:scale-95 shadow-lg shadow-blue-900/40">
-          同步儲存至雲端
+        <button onclick="saveCurrentSong()" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold text-base py-3.5 rounded-xl transition active:scale-95 shadow-lg shadow-blue-900/50 mt-1">
+          💾 同步儲存至雲端
         </button>
       </div>
 
