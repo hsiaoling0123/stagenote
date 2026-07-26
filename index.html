@@ -60,12 +60,18 @@
   <!-- 常規模式 UI -->
   <div id="normal-view">
     <!-- 頂部功能導覽 -->
-    <header class="flex justify-between items-center border-b border-slate-800 pb-4 mb-3">
+    <header class="flex flex-wrap justify-between items-center border-b border-slate-800 pb-4 mb-3 gap-3">
       <div class="flex items-center gap-3">
         <i data-lucide="music" class="text-blue-500 w-7 h-7"></i>
         <h1 class="text-2xl font-extrabold tracking-wide">StageNote</h1>
         <span id="sync-status" class="text-xs bg-slate-800 text-slate-400 px-3 py-1 rounded-full border border-slate-700 font-mono">連線中...</span>
+        
+        <!-- 頂部新增歌曲按鈕 -->
+        <button onclick="openNewSongModal()" class="bg-blue-600/90 hover:bg-blue-500 text-white text-xs md:text-sm font-bold px-3.5 py-1.5 rounded-xl border border-blue-500/50 active:scale-95 transition flex items-center gap-1 shadow-md shadow-blue-900/30">
+          <i data-lucide="plus" class="w-4 h-4"></i> 新增歌曲
+        </button>
       </div>
+
       <div class="flex items-center gap-2">
         <button onclick="toggleChords()" class="bg-slate-800 hover:bg-slate-700 text-slate-100 text-sm font-semibold px-4 py-2.5 rounded-xl border border-slate-700 active:scale-95 transition flex items-center gap-1">
           <span id="chord-toggle-text">和弦: 顯</span>
@@ -196,7 +202,6 @@
       <div class="flex items-center justify-between gap-3">
         <div class="flex items-center gap-2.5 min-w-0">
           <span class="shrink-0 bg-red-600 text-white text-[10px] font-black px-2 py-0.5 rounded tracking-widest">LIVE</span>
-          <!-- 超大歌名標題 (text-3xl / md:text-4xl) -->
           <h2 id="live-title" class="text-3xl md:text-4xl font-black text-white truncate tracking-wide">歌曲名稱</h2>
         </div>
         
