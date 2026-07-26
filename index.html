@@ -66,14 +66,17 @@
         <h1 class="text-2xl font-extrabold tracking-wide">StageNote</h1>
         <span id="sync-status" class="text-xs bg-slate-800 text-slate-400 px-3 py-1 rounded-full border border-slate-700 font-mono">連線中...</span>
       </div>
-      <div class="flex items-center gap-2.5">
-        <button onclick="toggleChords()" class="bg-slate-800 hover:bg-slate-700 text-slate-100 text-sm font-semibold px-4 py-2.5 rounded-xl border border-slate-700 active:scale-95 transition flex items-center gap-1">
+      <div class="flex items-center gap-2">
+        <button onclick="toggleChords()" class="bg-slate-800 hover:bg-slate-700 text-slate-100 text-sm font-semibold px-3.5 py-2.5 rounded-xl border border-slate-700 active:scale-95 transition flex items-center gap-1">
           <span id="chord-toggle-text">和弦: 顯</span>
         </button>
-        <button onclick="toggleTags()" class="bg-slate-800 hover:bg-slate-700 text-slate-100 text-sm font-semibold px-4 py-2.5 rounded-xl border border-slate-700 active:scale-95 transition flex items-center gap-1">
+        <button onclick="toggleTags()" class="bg-slate-800 hover:bg-slate-700 text-slate-100 text-sm font-semibold px-3.5 py-2.5 rounded-xl border border-slate-700 active:scale-95 transition flex items-center gap-1">
           <span id="tag-toggle-text">標記: 顯</span>
         </button>
-        <button onclick="enterLiveMode()" class="bg-red-600 hover:bg-red-500 text-white text-base font-extrabold px-5 py-2.5 rounded-xl flex items-center gap-1.5 active:scale-95 transition shadow-lg shadow-red-900/50">
+        <button onclick="toggleFullScreen()" class="bg-slate-800 hover:bg-slate-700 text-slate-100 text-sm font-semibold p-2.5 rounded-xl border border-slate-700 active:scale-95 transition flex items-center gap-1" title="切換全螢幕">
+          <i data-lucide="maximize" class="w-4 h-4 text-blue-400"></i>
+        </button>
+        <button onclick="enterLiveMode()" class="bg-red-600 hover:bg-red-500 text-white text-base font-extrabold px-4 py-2.5 rounded-xl flex items-center gap-1.5 active:scale-95 transition shadow-lg shadow-red-900/50">
           <i data-lucide="mic" class="w-5 h-5"></i> 演出
         </button>
       </div>
@@ -188,10 +191,10 @@
     </div>
   </div>
 
-  <!-- 🎤 演出模式 (Live Mode - 頂部控制欄固定懸浮於最上方) -->
+  <!-- 🎤 演出模式 (Live Mode) -->
   <div id="live-view" class="fixed inset-0 bg-black z-50 hidden flex flex-col p-4 pt-36 overflow-y-auto">
     
-    <!-- 固定懸浮最上層工具欄 (Fixed Top) -->
+    <!-- 固定懸浮最上層工具欄 -->
     <div class="fixed top-0 left-0 right-0 bg-black/95 backdrop-blur-xl z-50 border-b border-zinc-800 p-4 space-y-2.5 shadow-2xl">
       <div class="flex items-center justify-between gap-2">
         <div class="flex items-center gap-2 min-w-0">
@@ -223,6 +226,9 @@
           </button>
           <button onclick="toggleTags()" class="bg-zinc-900 hover:bg-zinc-800 active:scale-95 text-zinc-300 px-2.5 py-2 rounded-xl text-xs border border-zinc-800 transition">
             <span id="live-tag-toggle-text">標記: 顯</span>
+          </button>
+          <button onclick="toggleFullScreen()" class="bg-zinc-900 hover:bg-zinc-800 active:scale-95 text-zinc-300 p-2 rounded-xl text-xs border border-zinc-800 transition" title="切換全螢幕">
+            <i data-lucide="maximize" class="w-3.5 h-3.5 text-blue-400"></i>
           </button>
           <button id="live-scroll-btn" onclick="toggleLiveScroll()" class="bg-blue-600 hover:bg-blue-500 active:scale-95 text-white px-4 py-2 rounded-xl text-xs font-bold transition shadow-lg shadow-blue-900/40">
             開始滾動
@@ -269,6 +275,23 @@
       }
       lastTouchEnd = now;
     }, false);
+
+    // 切換全螢幕邏輯
+    function toggleFullScreen() {
+      if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+        if (document.documentElement.requestFullscreen) {
+          document.documentElement.requestFullscreen();
+        } else if (document.documentElement.webkitRequestFullscreen) {
+          document.documentElement.webkitRequestFullscreen();
+        }
+      } else {
+        if (document.exitFullscreen) {
+          document.exitFullscreen();
+        } else if (document.webkitExitFullscreen) {
+          document.webkitExitFullscreen();
+        }
+      }
+    }
 
     let songs = [];
     let tabs = [0];
