@@ -450,10 +450,12 @@
     }
 
     function autoSaveLyrics() {
-      const lyrics = document.getElementById('input-lyrics').value;
       const currentSongIndex = tabs[activeTabIndex];
-      if (songs[currentSongIndex]) {
-        songs[currentSongIndex].lyrics = lyrics;
+      if (!songs[currentSongIndex]) return;
+
+      const textareaVal = document.getElementById('input-lyrics').value;
+      if (showChords) {
+        songs[currentSongIndex].lyrics = textareaVal;
       }
     }
 
@@ -551,7 +553,8 @@
       document.getElementById('input-bpm').value = song.bpm || '';
       
       const lyricsInput = document.getElementById('input-lyrics');
-      lyricsInput.value = song.lyrics || '';
+      let rawLyrics = song.lyrics || '';
+      lyricsInput.value = showChords ? rawLyrics : rawLyrics.replace(/\[.*?\]/g, '');
       adjustTextareaHeight(lyricsInput);
     }
 
@@ -615,6 +618,15 @@
       const label = showChords ? '和弦: 顯' : '和弦: 隱';
       if (normalText) normalText.innerText = label;
       if (liveText) liveText.innerText = label;
+
+      // 切換編輯區文字顯示
+      const currentSongIndex = tabs[activeTabIndex];
+      if (songs[currentSongIndex]) {
+        const lyricsInput = document.getElementById('input-lyrics');
+        let rawLyrics = songs[currentSongIndex].lyrics || '';
+        lyricsInput.value = showChords ? rawLyrics : rawLyrics.replace(/\[.*?\]/g, '');
+        adjustTextareaHeight(lyricsInput);
+      }
     }
 
     function toggleTags() {
@@ -650,7 +662,8 @@
       document.getElementById('song-bpm').innerText = song.bpm || '-';
 
       const lyricsInput = document.getElementById('input-lyrics');
-      lyricsInput.value = song.lyrics || '';
+      let rawLyrics = song.lyrics || '';
+      lyricsInput.value = showChords ? rawLyrics : rawLyrics.replace(/\[.*?\]/g, '');
       adjustTextareaHeight(lyricsInput);
 
       document.getElementById('live-title').innerText = song.title;
@@ -770,10 +783,14 @@
       const key = document.getElementById('input-key').value || '-';
       const prefKey = document.getElementById('input-pref-key').value || '-';
       const bpm = document.getElementById('input-bpm').value || '-';
-      const lyrics = document.getElementById('input-lyrics').value || '';
-
+      
       const currentSongIndex = tabs[activeTabIndex];
       const currentViewCount = (songs[currentSongIndex] && songs[currentSongIndex].viewCount) || 0;
+      
+      let lyrics = songs[currentSongIndex] ? songs[currentSongIndex].lyrics : '';
+      if (showChords) {
+        lyrics = document.getElementById('input-lyrics').value || '';
+      }
 
       const updatedSong = { 
         id: 'song-' + Date.now(), 
