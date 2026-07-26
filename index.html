@@ -115,7 +115,7 @@
         </div>
       </div>
 
-      <!-- 右側：工具欄（含新增自訂標記功能） -->
+      <!-- 右側：工具欄（長按標記即可刪除） -->
       <div class="w-full md:w-6/12 lg:w-5/12 bg-slate-900 border border-slate-800 rounded-2xl p-6 flex flex-col gap-5 shadow-2xl sticky top-4 h-fit z-30 shrink-0">
         <div class="flex justify-between items-center border-b border-slate-800 pb-3">
           <h3 class="text-lg font-bold text-white flex items-center gap-2">
@@ -157,9 +157,10 @@
 
         <!-- 快速標記區與新增自訂標記 -->
         <div>
-          <label class="text-sm text-blue-400 mb-2 block font-bold flex justify-between items-center">
-            <span>⚡ 快速插入演出標記</span>
-          </label>
+          <div class="flex justify-between items-center mb-2">
+            <label class="text-sm text-blue-400 font-bold">⚡ 快速插入演出標記</label>
+            <span class="text-[11px] text-slate-500">（長按標記可刪除）</span>
+          </div>
           
           <div id="tags-list-container" class="flex flex-wrap gap-2 max-h-56 overflow-y-auto p-3 bg-slate-950 rounded-xl border border-slate-800 mb-3">
             <!-- 動態渲染標記 -->
@@ -360,17 +361,64 @@
       });
     };
 
-    // 渲染演出標記按鈕清單
+    // 渲染演出標記按鈕清單（支援長按與右鍵刪除）
     function renderTagsList() {
       const container = document.getElementById('tags-list-container');
       container.innerHTML = customTags.map((tag, idx) => `
-        <div class="group relative flex items-center">
-          <button onclick="insertTag('${tag}')" class="bg-slate-800 hover:bg-slate-700 active:scale-95 text-sm font-medium px-3 py-2 rounded-lg text-slate-100 border border-slate-700 transition flex items-center gap-1">
-            ${tag}
-          </button>
-          <button onclick="deleteCustomTag(${idx})" class="text-slate-500 hover:text-red-400 ml-1 text-xs p-1" title="刪除此標記">✕</button>
-        </div>
+        <button 
+          id="tag-btn-${idx}"
+          onclick="handleTagClick('${tag}', ${idx})"
+          oncontextmenu="handleTagContextMenu(event, '${tag}', ${idx})"
+          ontouchstart="handleTagTouchStart('${tag}', ${idx})"
+          ontouchend="handleTagTouchEnd()"
+          ontouchmove="handleTagTouchEnd()"
+          class="bg-slate-800 hover:bg-slate-700 active:scale-95 text-sm font-medium px-3.5 py-2 rounded-xl text-slate-100 border border-slate-700 transition"
+        >
+          ${tag}
+        </button>
       `).join('');
+    }
+
+    let longPressTimer = null;
+    let isLongPressTriggered = false;
+
+    // 平板/手機觸控長按事件發動
+    function handleTagTouchStart(tag, index) {
+      isLongPressTriggered = false;
+      longPressTimer = setTimeout(() => {
+        isLongPressTriggered = true;
+        confirmDeleteCustomTag(tag, index);
+      }, 500); // 500毫秒視為長按
+    }
+
+    function handleTagTouchEnd() {
+      if (longPressTimer) {
+        clearTimeout(longPressTimer);
+        longPressTimer = null;
+      }
+    }
+
+    // 滑鼠點擊
+    function handleTagClick(tag, index) {
+      if (isLongPressTriggered) {
+        isLongPressTriggered = false;
+        return;
+      }
+      insertTag(tag);
+    }
+
+    // 電腦滑鼠右鍵點擊觸發刪除
+    function handleTagContextMenu(e, tag, index) {
+      e.preventDefault();
+      confirmDeleteCustomTag(tag, index);
+    }
+
+    // 刪除確認彈窗
+    function confirmDeleteCustomTag(tag, index) {
+      if (confirm(`確定要刪除標記 『${tag}』 嗎？`)) {
+        customTags.splice(index, 1);
+        db.ref('custom_tags').set(customTags);
+      }
     }
 
     // 新增自訂標記
@@ -384,12 +432,6 @@
         db.ref('custom_tags').set(customTags);
       }
       input.value = '';
-    }
-
-    // 刪除自訂標記
-    function deleteCustomTag(index) {
-      customTags.splice(index, 1);
-      db.ref('custom_tags').set(customTags);
     }
 
     function initKeySelectOptions() {
