@@ -72,7 +72,6 @@
 
     <!-- 多頁籤分頁列 (Tabs Bar) -->
     <div class="flex items-center gap-1 mb-4 overflow-x-auto no-scrollbar pb-1 border-b border-slate-800/80" id="tabs-container">
-      <!-- 頁籤動態產生於此 -->
     </div>
 
     <!-- 主資訊卡片 -->
@@ -92,9 +91,9 @@
         </div>
       </div>
       <div class="flex flex-wrap gap-2 text-xs font-mono">
-        <span class="bg-slate-800 px-2.5 py-1 rounded border border-slate-700">Key: <b id="song-key" class="text-yellow-400">-</b></span>
+        <span class="bg-slate-800 px-2.5 py-1 rounded border border-slate-700">原Key: <b id="song-key" class="text-yellow-400">-</b></span>
+        <span class="bg-slate-800 px-2.5 py-1 rounded border border-slate-700">常用Key: <b id="song-pref-key" class="text-emerald-400">-</b></span>
         <span class="bg-slate-800 px-2.5 py-1 rounded border border-slate-700">BPM: <b id="song-bpm" class="text-blue-400">-</b></span>
-        <span class="bg-slate-800 px-2.5 py-1 rounded border border-slate-700">Capo: <b id="song-capo" class="text-emerald-400">-</b></span>
       </div>
     </div>
 
@@ -126,7 +125,7 @@
           <button onclick="toggleSearchModal()" class="bg-zinc-900 hover:bg-zinc-800 text-zinc-300 p-1.5 rounded-lg border border-zinc-800 active:scale-95 transition">
             <i data-lucide="search" class="w-4 h-4 text-blue-400"></i>
           </button>
-          <span id="live-info" class="shrink-0 text-xs font-mono text-zinc-400 bg-zinc-900 px-2 py-1 rounded border border-zinc-800">Key: C | BPM: 120</span>
+          <span id="live-info" class="shrink-0 text-xs font-mono text-zinc-400 bg-zinc-900 px-2 py-1 rounded border border-zinc-800">原: C | 常用: C</span>
         </div>
       </div>
 
@@ -182,6 +181,7 @@
     </div>
   </div>
 
+  <!-- 編輯 Modal -->
   <div id="edit-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
     <div class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-lg p-5 flex flex-col gap-4 max-h-[92vh]">
       <div class="flex justify-between items-center border-b border-slate-800 pb-2">
@@ -200,18 +200,23 @@
         </div>
       </div>
 
+      <!-- Key 選單 & BPM 區塊 (3欄排版) -->
       <div class="grid grid-cols-3 gap-2">
         <div>
-          <label class="text-xs text-slate-400 mb-1 block">Key</label>
-          <input id="input-key" type="text" class="w-full bg-slate-800 border border-slate-700 rounded-lg p-2 text-sm text-white focus:outline-none">
+          <label class="text-xs text-slate-400 mb-1 block">原 Key</label>
+          <select id="input-key" class="w-full bg-slate-800 border border-slate-700 rounded-lg p-2 text-sm text-white focus:outline-none">
+            <!-- 動態生成 Key 選項 -->
+          </select>
+        </div>
+        <div>
+          <label class="text-xs text-slate-400 mb-1 block">常用 Key</label>
+          <select id="input-pref-key" class="w-full bg-slate-800 border border-slate-700 rounded-lg p-2 text-sm text-white focus:outline-none">
+            <!-- 動態生成 Key 選項 -->
+          </select>
         </div>
         <div>
           <label class="text-xs text-slate-400 mb-1 block">BPM</label>
-          <input id="input-bpm" type="text" class="w-full bg-slate-800 border border-slate-700 rounded-lg p-2 text-sm text-white focus:outline-none">
-        </div>
-        <div>
-          <label class="text-xs text-slate-400 mb-1 block">Capo</label>
-          <input id="input-capo" type="text" class="w-full bg-slate-800 border border-slate-700 rounded-lg p-2 text-sm text-white focus:outline-none">
+          <input id="input-bpm" type="text" placeholder="120" class="w-full bg-slate-800 border border-slate-700 rounded-lg p-2 text-sm text-white focus:outline-none">
         </div>
       </div>
 
@@ -250,7 +255,7 @@
 
   <script>
     let songs = [];
-    let tabs = [0]; // 儲存分頁開啟的歌曲索引
+    let tabs = [0];
     let activeTabIndex = 0;
     
     let currentFontSize = 24;
@@ -259,6 +264,13 @@
     let speedLevel = 5;
     let showChords = true;
     let showTags = true;
+
+    // 所有常見用到的 Key 清單
+    const allKeys = [
+      "-",
+      "C", "C# / Db", "D", "D# / Eb", "E", "F", "F# / Gb", "G", "G# / Ab", "A", "A# / Bb", "B",
+      "Am", "A#m / Bbm", "Bm", "Cm", "C#m", "Dm", "D#m / Ebm", "Em", "Fm", "F#m", "Gm", "G#m"
+    ];
 
     function getScrollInterval() {
       return Math.max(10, 90 - (speedLevel * 8));
@@ -277,6 +289,7 @@
 
     window.onload = () => {
       lucide.createIcons();
+      initKeySelectOptions();
       
       window.addEventListener('keydown', (e) => {
         if (e.code === 'Space') {
@@ -302,8 +315,8 @@
             title: "愛人錯過",
             artist: "告五人",
             key: "C",
+            prefKey: "C",
             bpm: "120",
-            capo: "-",
             lyrics: `作詞：潘雲安  作曲：潘雲安\n\n[C]我肯定在幾百年前就說過愛你\n\n[G]只是你忘了\n\n[Am]我也沒想起\n\n⭐ 重點\n\n[F]我肯定在幾百年前就說過愛你`
           }];
           db.ref('songs').set(songs);
@@ -314,6 +327,16 @@
         renderCurrentTabSong();
       });
     };
+
+    // 初始化 Key 選單內容
+    function initKeySelectOptions() {
+      const keySelect = document.getElementById('input-key');
+      const prefKeySelect = document.getElementById('input-pref-key');
+      const optionsHtml = allKeys.map(k => `<option value="${k}">${k}</option>`).join('');
+      
+      keySelect.innerHTML = optionsHtml;
+      prefKeySelect.innerHTML = optionsHtml;
+    }
 
     // --- 分頁邏輯 (Tabs Logic) ---
     function renderTabs() {
@@ -351,13 +374,12 @@
       renderCurrentTabSong();
     }
 
-    // 💡 按 + 號建新分頁並【直接跳出搜尋卡片】
     function addNewTab() {
-      tabs.push(0); // 先開新頁面
+      tabs.push(0);
       activeTabIndex = tabs.length - 1;
       renderTabs();
       renderCurrentTabSong();
-      toggleSearchModal(); // 打開搜尋跳窗
+      toggleSearchModal();
     }
 
     function closeTab(tIdx) {
@@ -411,7 +433,7 @@
             <div class="text-sm font-bold text-slate-100">${item.song.title}</div>
             <div class="text-xs text-slate-400">${item.song.artist || '-'}</div>
           </div>
-          <span class="text-[11px] font-mono bg-slate-800 text-slate-300 px-2 py-0.5 rounded border border-slate-700">Key: ${item.song.key || '-'}</span>
+          <span class="text-[11px] font-mono bg-slate-800 text-slate-300 px-2 py-0.5 rounded border border-slate-700">常用: ${item.song.prefKey || item.song.key || '-'}</span>
         </div>
       `).join('');
     }
@@ -480,15 +502,15 @@
       document.getElementById('song-title').innerText = song.title;
       document.getElementById('song-artist').innerText = song.artist || '-';
       document.getElementById('song-key').innerText = song.key || '-';
+      document.getElementById('song-pref-key').innerText = song.prefKey || '-';
       document.getElementById('song-bpm').innerText = song.bpm || '-';
-      document.getElementById('song-capo').innerText = song.capo || '-';
 
       const container = document.getElementById('lyrics-container');
       container.innerHTML = generateLyricsHTML(song.lyrics);
       container.style.fontSize = currentFontSize + 'px';
 
       document.getElementById('live-title').innerText = song.title;
-      document.getElementById('live-info').innerText = `Key: ${song.key || '-'} | BPM: ${song.bpm || '-'} | Capo: ${song.capo || '-'}`;
+      document.getElementById('live-info').innerText = `原: ${song.key || '-'} | 常用: ${song.prefKey || '-'} | BPM: ${song.bpm || '-'}`;
       document.getElementById('live-lyrics-container').innerHTML = generateLyricsHTML(song.lyrics, true);
     }
 
@@ -605,9 +627,9 @@
         const cur = songs[currentSongIndex];
         document.getElementById('input-title').value = cur.title || '';
         document.getElementById('input-artist').value = cur.artist || '';
-        document.getElementById('input-key').value = cur.key || '';
+        document.getElementById('input-key').value = cur.key || '-';
+        document.getElementById('input-pref-key').value = cur.prefKey || '-';
         document.getElementById('input-bpm').value = cur.bpm || '';
-        document.getElementById('input-capo').value = cur.capo || '';
         document.getElementById('input-lyrics').value = cur.lyrics || '';
       }
     }
@@ -615,9 +637,9 @@
     function openNewSongModal() {
       document.getElementById('input-title').value = '';
       document.getElementById('input-artist').value = '';
-      document.getElementById('input-key').value = '';
+      document.getElementById('input-key').value = '-';
+      document.getElementById('input-pref-key').value = '-';
       document.getElementById('input-bpm').value = '';
-      document.getElementById('input-capo').value = '';
       document.getElementById('input-lyrics').value = '';
       document.getElementById('edit-modal').classList.remove('hidden');
     }
@@ -626,11 +648,11 @@
       const title = document.getElementById('input-title').value || '未命名歌曲';
       const artist = document.getElementById('input-artist').value || '-';
       const key = document.getElementById('input-key').value || '-';
+      const prefKey = document.getElementById('input-pref-key').value || '-';
       const bpm = document.getElementById('input-bpm').value || '-';
-      const capo = document.getElementById('input-capo').value || '-';
       const lyrics = document.getElementById('input-lyrics').value || '';
 
-      const updatedSong = { id: 'song-' + Date.now(), title, artist, key, bpm, capo, lyrics };
+      const updatedSong = { id: 'song-' + Date.now(), title, artist, key, prefKey, bpm, lyrics };
       const currentSongIndex = tabs[activeTabIndex];
 
       if (document.getElementById('song-select').value !== 'new' && songs[currentSongIndex]) {
