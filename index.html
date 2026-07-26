@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>StageNote - 駐唱看詞助手</title>
+  <!-- 引入 Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- 引入 Lucide 圖示 -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen p-4 pb-28 font-sans">
+
+  <!-- 頂部導覽列 -->
+  <header class="flex justify-between items-center border-b border-slate-800 pb-3 mb-6">
+    <div class="flex items-center gap-2">
+      <i data-lucide="music" class="text-blue-500"></i>
+      <h1 class="text-xl font-bold tracking-wide">StageNote</h1>
+    </div>
+    <span class="bg-blue-600/20 text-blue-400 text-xs px-2.5 py-1 rounded-full font-semibold">
+      演出模式
+    </span>
+  </header>
+
+  <!-- 歌曲資訊卡片 -->
+  <div class="bg-slate-900 border border-slate-800 rounded-xl p-4 mb-6 shadow-lg">
+    <h2 class="text-2xl font-bold text-white mb-1">愛錯</h2>
+    <p class="text-slate-400 text-sm">王力宏</p>
+    <div class="mt-3 inline-block bg-slate-800 px-3 py-1 rounded-md text-xs font-mono text-slate-300">
+      Key: <span class="text-yellow-400 font-bold">C#</span>
+    </div>
+  </div>
+
+  <!-- 歌詞與和弦顯示區 -->
+  <main id="lyrics-container" class="leading-relaxed tracking-wider space-y-4 text-2xl">
+    
+    <!-- 第一行 -->
+    <div class="flex flex-wrap items-end gap-x-3">
+      <div class="flex flex-col items-start">
+        <span class="text-blue-400 font-bold text-lg leading-none mb-1">C</span>
+        <span>我來到你的城市</span>
+      </div>
+    </div>
+
+    <!-- 第二行 -->
+    <div class="flex flex-wrap items-end gap-x-3">
+      <div class="flex flex-col items-start">
+        <span class="text-blue-400 font-bold text-lg leading-none mb-1">G</span>
+        <span>走過你來時的路</span>
+      </div>
+    </div>
+
+    <!-- 第三行 -->
+    <div class="flex flex-wrap items-end gap-x-3">
+      <div class="flex flex-col items-start">
+        <span class="text-blue-400 font-bold text-lg leading-none mb-1">Am</span>
+        <span>想像著沒有你的日子</span>
+      </div>
+    </div>
+
+    <!-- 第四行 -->
+    <div class="flex flex-wrap items-end gap-x-3">
+      <div class="flex flex-col items-start">
+        <span class="text-blue-400 font-bold text-lg leading-none mb-1">F</span>
+        <span>是不是會很孤獨</span>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- 底部固定控制列 -->
+  <div class="fixed bottom-0 left-0 right-0 bg-slate-900/90 backdrop-blur-md border-t border-slate-800 p-4 flex justify-around items-center">
+    <!-- 縮小字體 -->
+    <button onclick="changeFontSize(-2)" class="p-3 bg-slate-800 rounded-full active:scale-95 transition">
+      <i data-lucide="zoom-out"></i>
+    </button>
+
+    <!-- 自動滾動開關 -->
+    <button id="scroll-btn" onclick="toggleScroll()" class="flex items-center gap-2 px-6 py-3 rounded-full font-bold bg-blue-600 text-white active:scale-95 transition">
+      <i data-lucide="play" id="scroll-icon"></i>
+      <span id="scroll-text">開始滾動</span>
+    </button>
+
+    <!-- 放大字體 -->
+    <button onclick="changeFontSize(2)" class="p-3 bg-slate-800 rounded-full active:scale-95 transition">
+      <i data-lucide="zoom-in"></i>
+    </button>
+  </div>
+
+  <script>
+    // 初始化 Lucide 圖示
+    lucide.createIcons();
+
+    // 控制字體大小
+    let currentFontSize = 24;
+    function changeFontSize(delta) {
+      currentFontSize = Math.min(Math.max(16, currentFontSize + delta), 40);
+      document.getElementById('lyrics-container').style.fontSize = currentFontSize + 'px';
+    }
+
+    // 控制自動滾動
+    let isScrolling = false;
+    let scrollTimer = null;
+
+    function toggleScroll() {
+      isScrolling = !isScrolling;
+      const btn = document.getElementById('scroll-btn');
+      const text = document.getElementById('scroll-text');
+
+      if (isScrolling) {
+        btn.classList.remove('bg-blue-600');
+        btn.classList.add('bg-amber-500', 'text-slate-950');
+        text.innerText = '暫停滾動';
+        
+        scrollTimer = setInterval(() => {
+          window.scrollBy({ top: 1, behavior: 'smooth' });
+        }, 30);
+      } else {
+        btn.classList.remove('bg-amber-500', 'text-slate-950');
+        btn.classList.add('bg-blue-600', 'text-white');
+        text.innerText = '開始滾動';
+        clearInterval(scrollTimer);
+      }
+    }
+  </script>
+</body>
+</html>
