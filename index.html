@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <!-- Viewport 鎖定不許縮放 -->
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>StageNote - 駐唱看詞助手</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/lucide@latest"></script>
@@ -189,10 +189,10 @@
   </div>
 
   <!-- 🎤 演出模式 (Live Mode) -->
-  <div id="live-view" class="fixed inset-0 bg-black z-50 hidden flex flex-col">
+  <div id="live-view" class="fixed inset-0 bg-black z-50 hidden flex flex-col h-full w-full overflow-y-auto">
     
-    <!-- 懸浮最上層固定工具欄 (Fixed Top) -->
-    <div class="fixed top-0 left-0 right-0 bg-black/95 backdrop-blur-xl z-50 border-b border-zinc-800 p-4 space-y-2.5 shadow-2xl">
+    <!-- 懸浮最上層固定工具欄 (Sticky Top 抗手勢縮放推擠) -->
+    <div class="sticky top-0 left-0 right-0 bg-black/95 backdrop-blur-xl z-50 border-b border-zinc-800 p-4 space-y-2.5 shadow-2xl shrink-0">
       <div class="flex items-center justify-between gap-2">
         <div class="flex items-center gap-2 min-w-0">
           <span class="shrink-0 bg-red-600 text-white text-[10px] font-black px-1.5 py-0.5 rounded tracking-widest">LIVE</span>
@@ -234,8 +234,8 @@
       </div>
     </div>
 
-    <!-- 獨立滾動歌詞區域 (pt-44 確保不被頂部懸浮列遮擋) -->
-    <div id="live-scroll-area" class="flex-1 overflow-y-auto px-6 pt-44 pb-60">
+    <!-- 歌詞區域 (直接緊接在工具列下方，不需額外 paddingTop 避免推擠遮擋) -->
+    <div class="px-6 pt-6 pb-60 flex-1">
       <div id="live-lyrics-container" class="space-y-8 text-3xl font-bold tracking-wide text-white">
       </div>
     </div>
@@ -300,9 +300,9 @@
     }
 
     function performLiveScroll() {
-      const liveScrollArea = document.getElementById('live-scroll-area');
-      if (liveScrollArea) {
-        liveScrollArea.scrollTop += 1;
+      const liveView = document.getElementById('live-view');
+      if (liveView) {
+        liveView.scrollTop += 1;
       }
     }
 
@@ -728,8 +728,8 @@
       document.getElementById('normal-view').classList.add('hidden');
       document.getElementById('live-view').classList.remove('hidden');
       
-      const liveScrollArea = document.getElementById('live-scroll-area');
-      if (liveScrollArea) liveScrollArea.scrollTop = 0;
+      const liveView = document.getElementById('live-view');
+      if (liveView) liveView.scrollTop = 0;
     }
 
     function exitLiveMode() {
