@@ -189,21 +189,19 @@
   </div>
 
   <!-- 🎤 演出模式 (Live Mode) -->
-  <div id="live-view" class="fixed inset-0 bg-black z-50 hidden flex flex-col h-full w-full overflow-y-auto">
+  <div id="live-view" class="fixed inset-0 bg-black z-50 hidden flex flex-col h-screen w-screen overflow-hidden">
     
-    <!-- 懸浮最上層固定工具欄 -->
-    <div class="sticky top-0 left-0 right-0 bg-black/95 backdrop-blur-xl z-50 border-b border-zinc-800 p-4 space-y-2.5 shadow-2xl shrink-0">
-      <div class="flex items-center justify-between gap-2">
+    <!-- 100% 強制獨立頂層工具欄 -->
+    <div class="bg-black/95 backdrop-blur-xl border-b border-zinc-800 p-4 space-y-3 shadow-2xl shrink-0 z-50">
+      <div class="flex items-center justify-between gap-3">
         <div class="flex items-center gap-2 min-w-0">
-          <span class="shrink-0 bg-red-600 text-white text-[10px] font-black px-1.5 py-0.5 rounded tracking-widest">LIVE</span>
-          <h2 id="live-title" class="text-xl font-black text-white truncate">歌曲名稱</h2>
+          <span class="shrink-0 bg-red-600 text-white text-[10px] font-black px-2 py-0.5 rounded tracking-widest">LIVE</span>
+          <h2 id="live-title" class="text-2xl font-black text-white truncate">歌曲名稱</h2>
         </div>
-        <div class="flex items-center gap-2 shrink-0">
-          <button onclick="toggleSearchModal()" class="bg-zinc-900 hover:bg-zinc-800 text-zinc-300 p-2 rounded-xl border border-zinc-800 active:scale-95 transition">
-            <i data-lucide="search" class="w-5 h-5 text-blue-400"></i>
-          </button>
-          <!-- 放大版 Key & BPM 資訊欄 -->
-          <span id="live-info" class="shrink-0 text-sm md:text-base font-mono font-bold text-zinc-200 bg-zinc-900 px-3 py-1.5 rounded-xl border border-zinc-700 shadow-inner">
+        
+        <!-- 大幅放大的 Key & BPM 面板（已移除搜尋按鈕） -->
+        <div class="shrink-0">
+          <span id="live-info" class="text-base md:text-xl font-mono font-extrabold text-zinc-100 bg-zinc-900 px-4 py-2 rounded-2xl border border-zinc-700 shadow-xl tracking-wide block">
             原: - | 常用: -
           </span>
         </div>
@@ -213,32 +211,32 @@
       </div>
 
       <div class="flex items-center justify-between gap-2 pt-1">
-        <div class="flex items-center gap-1.5 bg-zinc-900 px-3 py-1.5 rounded-xl border border-zinc-800 text-sm text-zinc-300">
-          <span class="text-zinc-400 text-xs font-semibold">速度</span>
+        <div class="flex items-center gap-1.5 bg-zinc-900 px-3.5 py-1.5 rounded-xl border border-zinc-800 text-sm text-zinc-300">
+          <span class="text-zinc-400 text-xs font-bold">速度</span>
           <button onclick="adjustSpeed(-1)" class="w-8 h-8 bg-zinc-800 hover:bg-zinc-700 active:scale-90 rounded-lg flex items-center justify-center font-bold text-zinc-100 text-lg">-</button>
           <span id="speed-label" class="w-7 text-center font-mono font-bold text-blue-400 text-base">5</span>
           <button onclick="adjustSpeed(1)" class="w-8 h-8 bg-zinc-800 hover:bg-zinc-700 active:scale-90 rounded-lg flex items-center justify-center font-bold text-zinc-100 text-lg">+</button>
         </div>
 
         <div class="flex items-center gap-2">
-          <button onclick="toggleChords()" class="bg-zinc-900 hover:bg-zinc-800 active:scale-95 text-zinc-200 px-3 py-2 rounded-xl text-xs md:text-sm font-semibold border border-zinc-800 transition">
+          <button onclick="toggleChords()" class="bg-zinc-900 hover:bg-zinc-800 active:scale-95 text-zinc-200 px-3.5 py-2.5 rounded-xl text-xs md:text-sm font-semibold border border-zinc-800 transition">
             <span id="live-chord-toggle-text">和弦: 顯</span>
           </button>
-          <button onclick="toggleTags()" class="bg-zinc-900 hover:bg-zinc-800 active:scale-95 text-zinc-200 px-3 py-2 rounded-xl text-xs md:text-sm font-semibold border border-zinc-800 transition">
+          <button onclick="toggleTags()" class="bg-zinc-900 hover:bg-zinc-800 active:scale-95 text-zinc-200 px-3.5 py-2.5 rounded-xl text-xs md:text-sm font-semibold border border-zinc-800 transition">
             <span id="live-tag-toggle-text">標記: 顯</span>
           </button>
-          <button id="live-scroll-btn" onclick="toggleLiveScroll()" class="bg-blue-600 hover:bg-blue-500 active:scale-95 text-white px-4 py-2 rounded-xl text-xs md:text-sm font-extrabold transition shadow-lg shadow-blue-900/40">
+          <button id="live-scroll-btn" onclick="toggleLiveScroll()" class="bg-blue-600 hover:bg-blue-500 active:scale-95 text-white px-5 py-2.5 rounded-xl text-xs md:text-sm font-extrabold transition shadow-lg shadow-blue-900/40">
             開始滾動
           </button>
-          <button onclick="exitLiveMode()" class="bg-zinc-800 hover:bg-zinc-700 active:scale-95 text-zinc-300 px-3 py-2 rounded-xl text-xs md:text-sm font-semibold border border-zinc-700 transition">
+          <button onclick="exitLiveMode()" class="bg-zinc-800 hover:bg-zinc-700 active:scale-95 text-zinc-300 px-3.5 py-2.5 rounded-xl text-xs md:text-sm font-semibold border border-zinc-700 transition">
             退出
           </button>
         </div>
       </div>
     </div>
 
-    <!-- 歌詞區域 -->
-    <div class="px-6 pt-6 pb-60 flex-1">
+    <!-- 獨立滾動歌詞區域 (與頂部工具列徹底分離，放大歌詞時完全不打擾工具列) -->
+    <div id="live-scroll-area" class="flex-1 overflow-y-auto px-6 pt-6 pb-60">
       <div id="live-lyrics-container" class="space-y-8 text-3xl font-bold tracking-wide text-white">
       </div>
     </div>
@@ -303,9 +301,9 @@
     }
 
     function performLiveScroll() {
-      const liveView = document.getElementById('live-view');
-      if (liveView) {
-        liveView.scrollTop += 1;
+      const liveScrollArea = document.getElementById('live-scroll-area');
+      if (liveScrollArea) {
+        liveScrollArea.scrollTop += 1;
       }
     }
 
@@ -672,7 +670,7 @@
       adjustTextareaHeight(lyricsInput);
 
       document.getElementById('live-title').innerText = song.title;
-      document.getElementById('live-info').innerHTML = `原: <b class="text-yellow-400">${song.key || '-'}</b> | 常用: <b class="text-emerald-400">${song.prefKey || '-'}</b> | BPM: <b class="text-blue-400">${song.bpm || '-'}</b>`;
+      document.getElementById('live-info').innerHTML = `原: <b class="text-yellow-400 text-lg md:text-xl">${song.key || '-'}</b> | 常用: <b class="text-emerald-400 text-lg md:text-xl">${song.prefKey || '-'}</b> | BPM: <b class="text-blue-400 text-lg md:text-xl">${song.bpm || '-'}</b>`;
       document.getElementById('live-lyrics-container').innerHTML = generateLyricsHTML(song.lyrics, true);
     }
 
@@ -731,8 +729,8 @@
       document.getElementById('normal-view').classList.add('hidden');
       document.getElementById('live-view').classList.remove('hidden');
       
-      const liveView = document.getElementById('live-view');
-      if (liveView) liveView.scrollTop = 0;
+      const liveScrollArea = document.getElementById('live-scroll-area');
+      if (liveScrollArea) liveScrollArea.scrollTop = 0;
     }
 
     function exitLiveMode() {
