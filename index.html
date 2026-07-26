@@ -18,6 +18,14 @@
     body.hide-tags .stage-tag {
       display: none !important;
     }
+    /* 隱藏滾動條但保持滾動 */
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
   </style>
 </head>
 <body class="bg-slate-950 text-slate-100 min-h-screen p-4 pb-28 font-sans select-none">
@@ -39,7 +47,7 @@
   </script>
 
   <div id="normal-view">
-    <header class="flex justify-between items-center border-b border-slate-800 pb-3 mb-4">
+    <header class="flex justify-between items-center border-b border-slate-800 pb-3 mb-2">
       <div class="flex items-center gap-2">
         <i data-lucide="music" class="text-blue-500"></i>
         <h1 class="text-xl font-bold tracking-wide">StageNote</h1>
@@ -60,6 +68,9 @@
         </button>
       </div>
     </header>
+
+    <div class="flex items-center gap-1 mb-4 overflow-x-auto no-scrollbar pb-1 border-b border-slate-800/80" id="tabs-container">
+      </div>
 
     <div class="bg-slate-900 border border-slate-800 rounded-xl p-4 mb-6 shadow-lg">
       <div class="flex justify-between items-start mb-3 gap-2">
@@ -101,7 +112,7 @@
   </div>
 
   <div id="live-view" class="fixed inset-0 bg-black z-50 hidden flex flex-col p-4 overflow-y-auto">
-    <div class="sticky top-0 bg-black/90 backdrop-blur-lg z-10 border-b border-zinc-800 pb-3 mb-6 space-y-2.5">
+    <div class="sticky top-0 bg-black/90 backdrop-blur-lg z-10 border-b border-zinc-800 pb-3 mb-2 space-y-2.5">
       <div class="flex items-center justify-between gap-2">
         <div class="flex items-center gap-2 min-w-0">
           <span class="shrink-0 bg-red-600 text-white text-[10px] font-black px-1.5 py-0.5 rounded tracking-widest">LIVE</span>
@@ -115,7 +126,10 @@
         </div>
       </div>
 
-      <div class="flex items-center justify-between gap-2">
+      <div class="flex items-center gap-1 overflow-x-auto no-scrollbar pb-1 border-b border-zinc-800/80" id="live-tabs-container">
+      </div>
+
+      <div class="flex items-center justify-between gap-2 pt-1">
         <div class="flex items-center gap-1 bg-zinc-900 px-2 py-1 rounded-lg border border-zinc-800 text-xs text-zinc-300">
           <span class="text-zinc-400 text-[11px]">速度</span>
           <button onclick="adjustSpeed(-1)" class="w-6 h-6 bg-zinc-800 hover:bg-zinc-700 active:scale-90 rounded flex items-center justify-center font-bold text-zinc-200">-</button>
@@ -149,7 +163,7 @@
       <div class="flex justify-between items-center border-b border-slate-800 pb-2">
         <div class="flex items-center gap-2 text-blue-400">
           <i data-lucide="search" class="w-5 h-5"></i>
-          <h3 class="text-base font-bold text-white">搜尋曲目</h3>
+          <h3 class="text-base font-bold text-white">搜尋曲目 (替換當前分頁)</h3>
         </div>
         <button onclick="toggleSearchModal()" class="text-slate-400 hover:text-white p-1"><i data-lucide="x"></i></button>
       </div>
@@ -231,7 +245,9 @@
 
   <script>
     let songs = [];
-    let currentSongIndex = 0;
+    let tabs = [0]; // 儲存分頁開啟的歌曲索引，預設開第一首
+    let activeTabIndex = 0; // 當前選中的分頁 index
+    
     let currentFontSize = 24;
     let isScrolling = false;
     let scrollTimer = null;
@@ -288,13 +304,83 @@
           db.ref('songs').set(songs);
         }
         
-        updateSongSelectOptions();
-        if (songs[currentSongIndex]) {
-          renderSong(songs[currentSongIndex]);
+        // 預設幫使用者開啟前 3 個分頁（如果歌曲庫有的話）
+        if (tabs.length === 1 && songs.length > 1) {
+          tabs = [0];
+          if (songs[1]) tabs.push(1);
+          if (songs[2]) tabs.push(2);
         }
+
+        updateSongSelectOptions();
+        renderTabs();
+        renderCurrentTabSong();
       });
     };
 
+    // --- 分頁邏輯 (Tabs Logic) ---
+    function renderTabs() {
+      const container = document.getElementById('tabs-container');
+      const liveContainer = document.getElementById('live-tabs-container');
+
+      const tabsHTML = tabs.map((songIndex, tIdx) => {
+        const song = songs[songIndex] || { title: '未選擇' };
+        const isActive = tIdx === activeTabIndex;
+        const activeClass = isActive 
+          ? 'bg-blue-600 text-white font-bold border-blue-500 shadow-md shadow-blue-900/30' 
+          : 'bg-slate-800/80 text-slate-300 hover:bg-slate-700 border-slate-700';
+
+        return `
+          <div onclick="switchTab(${tIdx})" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs cursor-pointer shrink-0 transition ${activeClass}">
+            <span class="max-w-[80px] truncate">${song.title}</span>
+            ${tabs.length > 1 ? `<button onclick="event.stopPropagation(); closeTab(${tIdx})" class="hover:text-red-300 p-0.5 rounded"><i data-lucide="x" class="w-3 h-3"></i></button>` : ''}
+          </div>
+        `;
+      }).join('') + `
+        <button onclick="addNewTab()" class="bg-slate-800 hover:bg-slate-700 text-blue-400 p-1.5 rounded-lg border border-slate-700 shrink-0 flex items-center justify-center">
+          <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+        </button>
+      `;
+
+      container.innerHTML = tabsHTML;
+      if (liveContainer) liveContainer.innerHTML = tabsHTML;
+      lucide.createIcons();
+    }
+
+    function switchTab(tIdx) {
+      if (isScrolling) toggleScroll(); // 切換分頁時暫停自動滾動
+      activeTabIndex = tIdx;
+      renderTabs();
+      renderCurrentTabSong();
+    }
+
+    function addNewTab() {
+      // 預設載入下一首或第 0 首
+      let nextSongIndex = (tabs[tabs.length - 1] + 1) % songs.length;
+      tabs.push(nextSongIndex);
+      activeTabIndex = tabs.length - 1;
+      renderTabs();
+      renderCurrentTabSong();
+    }
+
+    function closeTab(tIdx) {
+      if (tabs.length <= 1) return; // 至少保留一個分頁
+      tabs.splice(tIdx, 1);
+      if (activeTabIndex >= tabs.length) {
+        activeTabIndex = tabs.length - 1;
+      }
+      renderTabs();
+      renderCurrentTabSong();
+    }
+
+    function renderCurrentTabSong() {
+      const currentSongIndex = tabs[activeTabIndex];
+      if (songs[currentSongIndex]) {
+        renderSong(songs[currentSongIndex]);
+        document.getElementById('song-select').value = currentSongIndex;
+      }
+    }
+
+    // --- 搜尋與歌曲切換 ---
     function toggleSearchModal() {
       const modal = document.getElementById('search-modal');
       modal.classList.toggle('hidden');
@@ -333,8 +419,9 @@
     }
 
     function selectSearchResult(index) {
-      currentSongIndex = index;
-      renderSong(songs[currentSongIndex]);
+      tabs[activeTabIndex] = index; // 替換當前分頁的歌曲
+      renderTabs();
+      renderSong(songs[index]);
       document.getElementById('song-select').value = index;
       toggleSearchModal();
     }
@@ -378,15 +465,16 @@
     function updateSongSelectOptions() {
       const select = document.getElementById('song-select');
       select.innerHTML = songs.map((s, idx) => `<option value="${idx}">${s.title}</option>`).join('') + '<option value="new">+ 新增歌曲</option>';
-      select.value = currentSongIndex;
     }
 
     function switchSong(value) {
       if (value === 'new') {
         openNewSongModal();
       } else {
-        currentSongIndex = parseInt(value);
-        renderSong(songs[currentSongIndex]);
+        const index = parseInt(value);
+        tabs[activeTabIndex] = index;
+        renderTabs();
+        renderSong(songs[index]);
       }
     }
 
@@ -406,17 +494,14 @@
       document.getElementById('live-lyrics-container').innerHTML = generateLyricsHTML(song.lyrics, true);
     }
 
-    // 💡 修正標記辨識與包裹的邏輯
     function generateLyricsHTML(lyricsText, isLive = false) {
       if (!lyricsText) return '';
       const lines = lyricsText.split('\n');
       
-      // 標記關鍵字列表
       const tagKeywords = ['換氣', 'Mic拉遠', 'Mic靠近', '情緒', '微笑', '看觀眾', '互動', 'Solo', '吉他Solo', '鼓Fill', '升Key', '降Key', '重點', '小心高音', '放輕鬆'];
 
       return lines.map(line => {
         const trimmed = line.trim();
-        // 檢查該行是否包含 Emoji 或演出標記關鍵字
         const hasEmoji = /[\u{1F300}-\u{1F9FF}]/u.test(trimmed);
         const hasKeyword = tagKeywords.some(kw => trimmed.includes(kw));
 
@@ -517,6 +602,7 @@
     function toggleEditModal() {
       const modal = document.getElementById('edit-modal');
       modal.classList.toggle('hidden');
+      const currentSongIndex = tabs[activeTabIndex];
       if (!modal.classList.contains('hidden') && songs[currentSongIndex]) {
         const cur = songs[currentSongIndex];
         document.getElementById('input-title').value = cur.title || '';
@@ -547,16 +633,19 @@
       const lyrics = document.getElementById('input-lyrics').value || '';
 
       const updatedSong = { id: 'song-' + Date.now(), title, artist, key, bpm, capo, lyrics };
+      const currentSongIndex = tabs[activeTabIndex];
 
       if (document.getElementById('song-select').value !== 'new' && songs[currentSongIndex]) {
         songs[currentSongIndex] = updatedSong;
       } else {
         songs.push(updatedSong);
-        currentSongIndex = songs.length - 1;
+        tabs[activeTabIndex] = songs.length - 1;
       }
 
       db.ref('songs').set(songs).then(() => {
         toggleEditModal();
+        renderTabs();
+        renderCurrentTabSong();
       });
     }
   </script>
