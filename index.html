@@ -194,12 +194,13 @@
     <!-- 100% 強制獨立頂層工具欄 -->
     <div class="bg-black/95 backdrop-blur-xl border-b border-zinc-800 p-4 space-y-3 shadow-2xl shrink-0 z-50">
       <div class="flex items-center justify-between gap-3">
-        <div class="flex items-center gap-2 min-w-0">
+        <div class="flex items-center gap-2.5 min-w-0">
           <span class="shrink-0 bg-red-600 text-white text-[10px] font-black px-2 py-0.5 rounded tracking-widest">LIVE</span>
-          <h2 id="live-title" class="text-2xl font-black text-white truncate">歌曲名稱</h2>
+          <!-- 超大歌名標題 (text-3xl / md:text-4xl) -->
+          <h2 id="live-title" class="text-3xl md:text-4xl font-black text-white truncate tracking-wide">歌曲名稱</h2>
         </div>
         
-        <!-- 大幅放大的 Key & BPM 面板（已移除搜尋按鈕） -->
+        <!-- 大幅放大的 Key & BPM 面板 -->
         <div class="shrink-0">
           <span id="live-info" class="text-base md:text-xl font-mono font-extrabold text-zinc-100 bg-zinc-900 px-4 py-2 rounded-2xl border border-zinc-700 shadow-xl tracking-wide block">
             原: - | 常用: -
@@ -235,7 +236,7 @@
       </div>
     </div>
 
-    <!-- 獨立滾動歌詞區域 (與頂部工具列徹底分離，放大歌詞時完全不打擾工具列) -->
+    <!-- 獨立滾動歌詞區域 -->
     <div id="live-scroll-area" class="flex-1 overflow-y-auto px-6 pt-6 pb-60">
       <div id="live-lyrics-container" class="space-y-8 text-3xl font-bold tracking-wide text-white">
       </div>
