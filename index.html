@@ -12,6 +12,12 @@
   <!-- Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+  <style>
+    /* 隱藏和弦切換的 CSS 樣式 */
+    body.hide-chords .chord-label {
+      display: none !important;
+    }
+  </style>
 </head>
 <body class="bg-slate-950 text-slate-100 min-h-screen p-4 pb-28 font-sans select-none">
 
@@ -40,11 +46,15 @@
         <h1 class="text-xl font-bold tracking-wide">StageNote</h1>
         <span id="sync-status" class="text-[10px] bg-slate-800 text-slate-400 px-2 py-0.5 rounded-full border border-slate-700">連線中...</span>
       </div>
-      <div class="flex gap-2">
-        <button onclick="enterLiveMode()" class="bg-red-600 hover:bg-red-500 text-white text-xs font-bold px-3 py-1.5 rounded-lg flex items-center gap-1 active:scale-95 transition shadow-lg shadow-red-900/40">
-          <i data-lucide="mic" class="w-3.5 h-3.5"></i> 演出模式
+      <div class="flex gap-1.5">
+        <!-- 顯示/隱藏和弦按鈕 -->
+        <button onclick="toggleChords()" id="chord-toggle-btn" class="bg-slate-800 text-slate-200 text-xs px-2.5 py-1.5 rounded-lg border border-slate-700 flex items-center gap-1 active:scale-95 transition">
+          <i data-lucide="eye" class="w-3.5 h-3.5"></i> <span id="chord-toggle-text">和弦: 顯</span>
         </button>
-        <button onclick="toggleEditModal()" class="bg-slate-800 text-slate-200 text-xs px-3 py-1.5 rounded-lg border border-slate-700 flex items-center gap-1 active:scale-95 transition">
+        <button onclick="enterLiveMode()" class="bg-red-600 hover:bg-red-500 text-white text-xs font-bold px-3 py-1.5 rounded-lg flex items-center gap-1 active:scale-95 transition shadow-lg shadow-red-900/40">
+          <i data-lucide="mic" class="w-3.5 h-3.5"></i> 演出
+        </button>
+        <button onclick="toggleEditModal()" class="bg-slate-800 text-slate-200 text-xs px-2.5 py-1.5 rounded-lg border border-slate-700 flex items-center gap-1 active:scale-95 transition">
           <i data-lucide="edit-3" class="w-3.5 h-3.5"></i> 編輯
         </button>
       </div>
@@ -106,7 +116,11 @@
           <button onclick="adjustSpeed(1)" class="w-6 h-6 bg-zinc-800 hover:bg-zinc-700 active:scale-90 rounded flex items-center justify-center font-bold text-zinc-200">+</button>
         </div>
 
-        <div class="flex items-center gap-2">
+        <div class="flex items-center gap-1.5">
+          <!-- 演出模式的和弦切換開關 -->
+          <button onclick="toggleChords()" id="live-chord-toggle-btn" class="bg-zinc-800 hover:bg-zinc-700 active:scale-95 text-zinc-300 px-2.5 py-1.5 rounded-lg text-xs border border-zinc-700 transition">
+            和弦: 顯
+          </button>
           <button id="live-scroll-btn" onclick="toggleScroll()" class="bg-blue-600 hover:bg-blue-500 active:scale-95 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition">
             開始滾動
           </button>
@@ -196,14 +210,13 @@
     let currentFontSize = 24;
     let isScrolling = false;
     let scrollTimer = null;
-    let speedLevel = 5; // 1~10 級
+    let speedLevel = 5;
+    let showChords = true; // 和弦顯示狀態標誌
 
-    // 計算微調間隔 (10ms ~ 80ms)
     function getScrollInterval() {
       return Math.max(10, 90 - (speedLevel * 8));
     }
 
-    // 核心滾動動作（同時相容一般視窗與演出模式全螢幕容器）
     function performScroll() {
       const liveView = document.getElementById('live-view');
       const isLiveActive = !liveView.classList.contains('hidden');
@@ -246,7 +259,7 @@
             key: "C",
             bpm: "120",
             capo: "-",
-            lyrics: `作詞：潘雲安  作曲：潘雲安\n\n我肯定在幾百年前就說過愛你\n\n只是你忘了\n\n我也沒想起\n\n⭐ 重點\n\n我肯定在幾百年前就說過愛你`
+            lyrics: `作詞：潘雲安  作曲：潘雲安\n\n[C]我肯定在幾百年前就說過愛你\n\n[G]只是你忘了\n\n[Am]我也沒想起\n\n⭐ 重點\n\n[F]我肯定在幾百年前就說過愛你`
           }];
           db.ref('songs').set(songs);
         }
@@ -257,6 +270,23 @@
         }
       });
     };
+
+    // 切換顯示/隱藏和弦
+    function toggleChords() {
+      showChords = !showChords;
+      document.body.classList.toggle('hide-chords', !showChords);
+
+      const normalText = document.getElementById('chord-toggle-text');
+      const liveBtn = document.getElementById('live-chord-toggle-btn');
+
+      if (showChords) {
+        if (normalText) normalText.innerText = '和弦: 顯';
+        if (liveBtn) liveBtn.innerText = '和弦: 顯';
+      } else {
+        if (normalText) normalText.innerText = '和弦: 隱';
+        if (liveBtn) liveBtn.innerText = '和弦: 隱';
+      }
+    }
 
     function scrollPage(direction) {
       const liveView = document.getElementById('live-view');
@@ -320,7 +350,7 @@
           hasChord = true;
           lineHtml += `
             <div class="flex flex-col items-start">
-              <span class="${isLive ? 'text-blue-400 font-black text-2xl' : 'text-blue-400 font-bold text-xl'} leading-none mb-1">${match[1]}</span>
+              <span class="chord-label ${isLive ? 'text-blue-400 font-black text-2xl' : 'text-blue-400 font-bold text-xl'} leading-none mb-1">${match[1]}</span>
               <span>${match[2]}</span>
             </div>
           `;
