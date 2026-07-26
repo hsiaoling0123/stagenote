@@ -333,8 +333,8 @@
     </div>
   </div>
 
-  <!-- 🔍 檢索視窗 Modal -->
-  <div id="search-modal" class="fixed inset-0 bg-black/80 backdrop-blur-md z-50 hidden flex items-start justify-center p-4 pt-20">
+  <!-- 🔍 檢索視窗 Modal (放在 z-[200] 最外層，避免全螢幕中被遮擋) -->
+  <div id="search-modal" class="fixed inset-0 bg-black/80 backdrop-blur-md z-[200] hidden flex items-start justify-center p-4 pt-20">
     <div class="bg-stone-900 border border-stone-800 rounded-2xl w-full max-w-md p-5 flex flex-col gap-4 shadow-2xl">
       <div class="flex justify-between items-center border-b border-stone-800 pb-3">
         <div class="flex items-center gap-2 text-stone-300 font-serif-tc">
@@ -442,7 +442,6 @@
       }
     }
 
-    // 監聽全螢幕切換狀態更新 UI 按鈕
     document.addEventListener("fullscreenchange", updateFullscreenUI);
     document.addEventListener("webkitfullscreenchange", updateFullscreenUI);
 
@@ -510,7 +509,7 @@
       const select = document.getElementById('song-select');
       
       const sortedSongsWithIndex = songs.map((s, idx) => ({ ...s, originalIndex: idx }))
-        .sort((a, b) => (b.viewCount || 0) - (a.viewCount || 0));
+        .sort((a, b) => (b.song ? (b.song.viewCount || 0) : 0) - (a.song ? (a.song.viewCount || 0) : 0));
 
       const optionsHtml = sortedSongsWithIndex.map((s) => {
         const bpmStr = s.bpm ? `${s.bpm} ` : '';
@@ -794,7 +793,8 @@
         openNewSongForm();
       } else if (songs[currentSongIndex]) {
         renderSong(songs[currentSongIndex]);
-        document.getElementById('song-select').value = currentSongIndex;
+        const select = document.getElementById('song-select');
+        if (select) select.value = currentSongIndex;
         populateRightSidebarForm(songs[currentSongIndex]);
       }
     }
@@ -828,7 +828,7 @@
       const resultsContainer = document.getElementById('search-results');
       
       const filtered = songs.map((song, index) => ({ song, index }))
-        .sort((a, b) => (b.song.viewCount || 0) - (a.song.viewCount || 0))
+        .sort((a, b) => (b.song ? (b.song.viewCount || 0) : 0) - (a.song ? (a.song.viewCount || 0) : 0))
         .filter(item => {
           const title = (item.song.title || '').toLowerCase();
           const artist = (item.song.artist || '').toLowerCase();
@@ -862,7 +862,8 @@
       tabs[activeTabIndex] = index;
       renderTabs();
       renderSong(songs[index]);
-      document.getElementById('song-select').value = index;
+      const select = document.getElementById('song-select');
+      if (select) select.value = index;
       populateRightSidebarForm(songs[index]);
       toggleSearchModal();
     }
@@ -891,7 +892,7 @@
       showTags = !showTags;
       document.body.classList.toggle('hide-tags', !showTags);
 
-      const normalText = document.getElementById('chord-toggle-text');
+      const normalText = document.getElementById('tag-toggle-text');
       const liveText = document.getElementById('live-tag-toggle-text');
 
       const label = showTags ? '標記: 顯' : '標記: 隱';
@@ -991,7 +992,7 @@
     function exitLiveMode() {
       if (isScrolling) toggleLiveScroll();
       
-      // 若全螢幕開啟中，退出時自動結束全螢幕
+      // 只有明確按下「退出」時才退出全螢幕
       const isFullscreen = document.fullscreenElement || document.webkitFullscreenElement;
       if (isFullscreen) {
         toggleFullscreen();
