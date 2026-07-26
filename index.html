@@ -26,11 +26,11 @@
       -ms-overflow-style: none;
       scrollbar-width: none;
     }
-    /* 使 Textarea 自動根據內容高度延伸，不產生內部滾動條 */
+    /* 編輯區自動延伸高度 */
     .auto-expand-textarea {
-      field-sizing: content;
-      min-height: 400px;
       resize: none;
+      overflow-y: hidden;
+      min-height: 450px;
     }
   </style>
 </head>
@@ -75,9 +75,9 @@
     <div class="flex items-center gap-1 mb-4 overflow-x-auto no-scrollbar pb-1 border-b border-slate-800/80" id="tabs-container">
     </div>
 
-    <div class="flex flex-col lg:flex-row gap-6 items-start">
+    <div class="flex flex-col md:flex-row gap-6 items-start relative">
       
-      <div class="w-full lg:w-7/12 flex flex-col gap-4">
+      <div class="w-full md:w-7/12 flex flex-col gap-4">
         <div class="bg-slate-900 border border-slate-800 rounded-xl p-4 shadow-lg">
           <div class="flex justify-between items-start mb-3 gap-2">
             <div>
@@ -104,11 +104,11 @@
           <div class="text-[11px] text-slate-500 mb-2 font-mono flex justify-between items-center">
             <span>✏️ 點擊下方直接打字修改歌詞 (支援 [C]和弦 格式)</span>
           </div>
-          <textarea id="input-lyrics" oninput="autoSaveLyrics()" class="auto-expand-textarea w-full bg-transparent text-2xl text-slate-100 font-medium font-sans leading-relaxed tracking-wider focus:outline-none placeholder-slate-600" placeholder="點擊這裡直接打字輸入歌詞..."></textarea>
+          <textarea id="input-lyrics" oninput="autoSaveLyrics(); adjustTextareaHeight(this);" class="auto-expand-textarea w-full bg-transparent text-2xl text-slate-100 font-medium font-sans leading-relaxed tracking-wider focus:outline-none placeholder-slate-600" placeholder="點擊這裡直接打字輸入歌詞..."></textarea>
         </div>
       </div>
 
-      <div class="w-full lg:w-5/12 bg-slate-900 border border-slate-800 rounded-2xl p-5 flex flex-col gap-4 shadow-2xl lg:sticky lg:top-4 h-fit z-20">
+      <div class="w-full md:w-5/12 bg-slate-900 border border-slate-800 rounded-2xl p-5 flex flex-col gap-4 shadow-2xl sticky top-4 h-fit z-30 shrink-0">
         <div class="flex justify-between items-center border-b border-slate-800 pb-2">
           <h3 class="text-base font-bold text-white flex items-center gap-2">
             <i data-lucide="sliders" class="w-4 h-4 text-blue-400"></i>
@@ -285,6 +285,11 @@
       }
     }
 
+    function adjustTextareaHeight(el) {
+      el.style.height = 'auto';
+      el.style.height = el.scrollHeight + 'px';
+    }
+
     window.onload = () => {
       lucide.createIcons();
       initKeySelectOptions();
@@ -435,7 +440,10 @@
       document.getElementById('input-key').value = song.key || '-';
       document.getElementById('input-pref-key').value = song.prefKey || '-';
       document.getElementById('input-bpm').value = song.bpm || '';
-      document.getElementById('input-lyrics').value = song.lyrics || '';
+      
+      const lyricsInput = document.getElementById('input-lyrics');
+      lyricsInput.value = song.lyrics || '';
+      adjustTextareaHeight(lyricsInput);
     }
 
     // --- 搜尋與歌曲切換 ---
@@ -545,7 +553,9 @@
       document.getElementById('song-pref-key').innerText = song.prefKey || '-';
       document.getElementById('song-bpm').innerText = song.bpm || '-';
 
-      document.getElementById('input-lyrics').value = song.lyrics || '';
+      const lyricsInput = document.getElementById('input-lyrics');
+      lyricsInput.value = song.lyrics || '';
+      adjustTextareaHeight(lyricsInput);
 
       document.getElementById('live-title').innerText = song.title;
       document.getElementById('live-info').innerText = `原: ${song.key || '-'} | 常用: ${song.prefKey || '-'} | BPM: ${song.bpm || '-'}`;
@@ -600,6 +610,7 @@
       textarea.value = text.substring(0, start) + insertContent + text.substring(end);
       textarea.focus();
       textarea.selectionStart = textarea.selectionEnd = start + insertContent.length;
+      adjustTextareaHeight(textarea);
       autoSaveLyrics();
     }
 
@@ -628,6 +639,7 @@
     function changeFontSize(delta) {
       currentFontSize = Math.min(Math.max(18, currentFontSize + delta), 48);
       document.getElementById('input-lyrics').style.fontSize = currentFontSize + 'px';
+      adjustTextareaHeight(document.getElementById('input-lyrics'));
     }
 
     function toggleScroll() {
@@ -664,7 +676,11 @@
       document.getElementById('input-key').value = '-';
       document.getElementById('input-pref-key').value = '-';
       document.getElementById('input-bpm').value = '';
-      document.getElementById('input-lyrics').value = '';
+      
+      const lyricsInput = document.getElementById('input-lyrics');
+      lyricsInput.value = '';
+      adjustTextareaHeight(lyricsInput);
+      
       document.getElementById('input-title').focus();
     }
 
