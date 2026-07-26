@@ -47,6 +47,7 @@
   </script>
 
   <div id="normal-view">
+    <!-- 頂部功能導覽 -->
     <header class="flex justify-between items-center border-b border-slate-800 pb-3 mb-2">
       <div class="flex items-center gap-2">
         <i data-lucide="music" class="text-blue-500"></i>
@@ -69,9 +70,12 @@
       </div>
     </header>
 
+    <!-- 多頁籤分頁列 (Tabs Bar) -->
     <div class="flex items-center gap-1 mb-4 overflow-x-auto no-scrollbar pb-1 border-b border-slate-800/80" id="tabs-container">
-      </div>
+      <!-- 頁籤動態產生於此 -->
+    </div>
 
+    <!-- 主資訊卡片 -->
     <div class="bg-slate-900 border border-slate-800 rounded-xl p-4 mb-6 shadow-lg">
       <div class="flex justify-between items-start mb-3 gap-2">
         <div>
@@ -126,6 +130,7 @@
         </div>
       </div>
 
+      <!-- LIVE 模式下的多頁籤分頁列 -->
       <div class="flex items-center gap-1 overflow-x-auto no-scrollbar pb-1 border-b border-zinc-800/80" id="live-tabs-container">
       </div>
 
@@ -245,8 +250,8 @@
 
   <script>
     let songs = [];
-    let tabs = [0]; // 儲存分頁開啟的歌曲索引，預設開第一首
-    let activeTabIndex = 0; // 當前選中的分頁 index
+    let tabs = [0]; // 儲存分頁開啟的歌曲索引
+    let activeTabIndex = 0;
     
     let currentFontSize = 24;
     let isScrolling = false;
@@ -304,13 +309,6 @@
           db.ref('songs').set(songs);
         }
         
-        // 預設幫使用者開啟前 3 個分頁（如果歌曲庫有的話）
-        if (tabs.length === 1 && songs.length > 1) {
-          tabs = [0];
-          if (songs[1]) tabs.push(1);
-          if (songs[2]) tabs.push(2);
-        }
-
         updateSongSelectOptions();
         renderTabs();
         renderCurrentTabSong();
@@ -347,23 +345,23 @@
     }
 
     function switchTab(tIdx) {
-      if (isScrolling) toggleScroll(); // 切換分頁時暫停自動滾動
+      if (isScrolling) toggleScroll();
       activeTabIndex = tIdx;
       renderTabs();
       renderCurrentTabSong();
     }
 
+    // 💡 按 + 號建新分頁並【直接跳出搜尋卡片】
     function addNewTab() {
-      // 預設載入下一首或第 0 首
-      let nextSongIndex = (tabs[tabs.length - 1] + 1) % songs.length;
-      tabs.push(nextSongIndex);
+      tabs.push(0); // 先開新頁面
       activeTabIndex = tabs.length - 1;
       renderTabs();
       renderCurrentTabSong();
+      toggleSearchModal(); // 打開搜尋跳窗
     }
 
     function closeTab(tIdx) {
-      if (tabs.length <= 1) return; // 至少保留一個分頁
+      if (tabs.length <= 1) return;
       tabs.splice(tIdx, 1);
       if (activeTabIndex >= tabs.length) {
         activeTabIndex = tabs.length - 1;
@@ -419,7 +417,7 @@
     }
 
     function selectSearchResult(index) {
-      tabs[activeTabIndex] = index; // 替換當前分頁的歌曲
+      tabs[activeTabIndex] = index;
       renderTabs();
       renderSong(songs[index]);
       document.getElementById('song-select').value = index;
