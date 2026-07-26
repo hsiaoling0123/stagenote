@@ -4,7 +4,14 @@
   <meta charset="UTF-8">
   <!-- Viewport 鎖定不許縮放 -->
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#09090b">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <title>StageNote - 駐唱看詞助手</title>
+
+  <!-- PWA Manifest Data URI -->
+  <link rel="manifest" href='data:application/manifest+json,{"name":"StageNote","short_name":"StageNote","start_url":".","display":"standalone","background_color":"#09090b","theme_color":"#09090b","icons":[{"src":"https://cdn-icons-png.flaticon.com/512/3083/3083416.png","sizes":"512x512","type":"image/png"}]}'>
+
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/lucide@latest"></script>
   
@@ -74,8 +81,8 @@
       </div>
 
       <div class="flex items-center gap-1.5 pt-4">
-        <span class="w-1.5 h-1.5 rounded-full bg-amber-200/80 animate-ping"></span>
-        <span class="text-[11px] font-mono text-stone-500 tracking-wider">雲端曲庫同步中...</span>
+        <span id="loading-ping" class="w-1.5 h-1.5 rounded-full bg-amber-200/80 animate-ping"></span>
+        <span id="loading-text" class="text-[11px] font-mono text-stone-500 tracking-wider">曲庫準備中...</span>
       </div>
     </div>
   </div>
@@ -119,7 +126,7 @@
           <i data-lucide="disc" class="w-4 h-4"></i>
         </div>
         <h1 class="text-2xl font-serif-tc font-semibold tracking-widest text-stone-100">StageNote</h1>
-        <span id="sync-status" class="text-[11px] bg-stone-900 text-stone-500 px-3 py-1 rounded-full border border-stone-800 font-mono">同步中...</span>
+        <span id="sync-status" class="text-[11px] bg-stone-900 text-stone-500 px-3 py-1 rounded-full border border-stone-800 font-mono">連線中...</span>
         
         <button onclick="createNewSongWithNewTab()" class="bg-stone-800 hover:bg-stone-700 text-amber-200/90 text-xs font-medium px-3.5 py-1.5 rounded-full border border-amber-500/20 active:scale-95 transition flex items-center gap-1.5 shadow-sm">
           <i data-lucide="plus" class="w-3.5 h-3.5"></i> 新增歌曲
@@ -254,12 +261,11 @@
     </div>
   </div>
 
-  <!-- 🎤 演出模式 (Live Mode) - 針對手機排版完全優化 -->
+  <!-- 🎤 演出模式 (Live Mode) -->
   <div id="live-view" class="fixed inset-0 bg-black z-50 hidden flex flex-col h-screen w-screen overflow-hidden">
     
     <div class="bg-zinc-950/95 backdrop-blur-2xl border-b border-zinc-800/80 p-3 md:p-6 space-y-2.5 shadow-2xl shrink-0 z-50">
       
-      <!-- 第一行：歌名 + 時鐘/Key (手機自動換行) -->
       <div class="flex flex-col md:flex-row md:items-center justify-between gap-2">
         <div class="flex items-center gap-2 min-w-0">
           <span class="shrink-0 bg-rose-900/80 text-rose-200 border border-rose-700/50 text-[10px] font-mono px-2 py-0.5 rounded-full tracking-widest">LIVE</span>
@@ -278,13 +284,10 @@
         </div>
       </div>
 
-      <!-- 第二行：分頁 Tab 列 -->
       <div class="flex items-center gap-1 overflow-x-auto no-scrollbar pb-1 border-b border-zinc-800/60" id="live-tabs-container">
       </div>
 
-      <!-- 第三行：控制面板 (手機版可左右滑動) -->
       <div class="flex items-center gap-2 overflow-x-auto no-scrollbar pt-1 shrink-0">
-        <!-- 滾動速度控制 -->
         <div class="flex items-center gap-1 bg-stone-900 px-2.5 py-1.5 rounded-xl border border-stone-800 text-xs text-stone-300 shrink-0">
           <span class="text-stone-500 font-serif-tc text-[11px]">速度</span>
           <button onclick="adjustSpeed(-1)" class="w-6 h-6 bg-stone-800 hover:bg-stone-700 active:scale-90 rounded flex items-center justify-center font-bold text-stone-200">-</button>
@@ -292,7 +295,6 @@
           <button onclick="adjustSpeed(1)" class="w-6 h-6 bg-stone-800 hover:bg-stone-700 active:scale-90 rounded flex items-center justify-center font-bold text-stone-200">+</button>
         </div>
 
-        <!-- 🔀 自動移調面板 -->
         <div class="flex items-center gap-1 bg-stone-900 px-2.5 py-1.5 rounded-xl border border-stone-800 text-xs font-mono shrink-0">
           <span class="text-stone-500 text-[11px]">移調</span>
           <button onclick="transposeKey(-1)" class="w-6 h-6 bg-stone-800 hover:bg-stone-700 text-stone-200 rounded flex items-center justify-center font-bold active:scale-90">-</button>
@@ -301,7 +303,6 @@
           <button onclick="resetTranspose()" class="text-[10px] text-stone-500 hover:text-stone-300 ml-0.5 underline">重置</button>
         </div>
 
-        <!-- 功能按鈕群 -->
         <button id="fullscreen-btn" onclick="toggleFullscreen()" class="bg-stone-900 hover:bg-stone-800 active:scale-95 text-stone-300 px-3 py-1.5 rounded-xl text-xs font-medium border border-stone-800 transition flex items-center gap-1 shrink-0">
           <i data-lucide="maximize" class="w-3.5 h-3.5 text-amber-200/80"></i>
           <span id="fullscreen-btn-text">全螢幕</span>
@@ -323,7 +324,6 @@
 
     </div>
 
-    <!-- 獨立滾動歌詞區域 -->
     <div id="live-scroll-area" class="flex-1 overflow-y-auto px-4 md:px-12 pt-6 pb-60">
       <div id="live-lyrics-container" class="space-y-6 text-2xl md:text-4xl font-serif-tc font-semibold tracking-wider text-stone-100 leading-relaxed">
       </div>
@@ -393,6 +393,32 @@
       "C", "C# / Db", "D", "D# / Eb", "E", "F", "F# / Gb", "G", "G# / Ab", "A", "A# / Bb", "B",
       "Am", "A#m / Bbm", "Bm", "Cm", "C#m", "Dm", "D#m / Ebm", "Em", "Fm", "F#m", "Gm", "G#m"
     ];
+
+    // --- 📴 LocalStorage 快取備份機制 ---
+    function loadLocalCache() {
+      try {
+        const localSongs = localStorage.getItem('stagenote_songs');
+        if (localSongs) songs = JSON.parse(localSongs);
+
+        const localChords = localStorage.getItem('stagenote_chords');
+        if (localChords) customChords = JSON.parse(localChords);
+
+        const localTags = localStorage.getItem('stagenote_tags');
+        if (localTags) customTags = JSON.parse(localTags);
+      } catch (e) {
+        console.error("讀取本地快取失敗", e);
+      }
+    }
+
+    function saveLocalCache() {
+      try {
+        localStorage.setItem('stagenote_songs', JSON.stringify(songs));
+        localStorage.setItem('stagenote_chords', JSON.stringify(customChords));
+        localStorage.setItem('stagenote_tags', JSON.stringify(customTags));
+      } catch (e) {
+        console.error("保存本地快取失敗", e);
+      }
+    }
 
     function parseDurationToSeconds(durationStr) {
       if (!durationStr) return 240;
@@ -542,10 +568,38 @@
       initKeySelectOptions();
       initLiveClock();
 
+      // 先載入本地快取，防範斷網
+      loadLocalCache();
+      renderChordsList();
+      renderTagsList();
+
+      // 監聽 Firebase 網路連線狀態
+      const connectedRef = db.ref(".info/connected");
+      connectedRef.on("value", (snap) => {
+        const syncEl = document.getElementById('sync-status');
+        if (snap.val() === true) {
+          if (syncEl) {
+            syncEl.innerText = '雲端同步完成';
+            syncEl.className = 'text-[11px] bg-emerald-950/60 text-emerald-400 px-3 py-0.5 rounded-full border border-emerald-900/60 font-mono';
+          }
+        } else {
+          if (syncEl) {
+            syncEl.innerText = '離線模式 (本地快取)';
+            syncEl.className = 'text-[11px] bg-amber-950/60 text-amber-400 px-3 py-0.5 rounded-full border border-amber-900/60 font-mono';
+          }
+          // 斷網時直接啟動
+          updateSongSelectOptions();
+          renderTabs();
+          renderCurrentTabSong();
+          hideLoadingSplash();
+        }
+      });
+
       db.ref('custom_chords').on('value', (snapshot) => {
         const data = snapshot.val();
         if (data) {
           customChords = Array.isArray(data) ? data : Object.values(data);
+          saveLocalCache();
         }
         renderChordsList();
       });
@@ -554,18 +608,17 @@
         const data = snapshot.val();
         if (data) {
           customTags = Array.isArray(data) ? data : Object.values(data);
+          saveLocalCache();
         }
         renderTagsList();
       });
 
       db.ref('songs').on('value', (snapshot) => {
         const data = snapshot.val();
-        document.getElementById('sync-status').innerText = '雲端同步完成';
-        document.getElementById('sync-status').className = 'text-[11px] bg-emerald-950/60 text-emerald-400 px-3 py-0.5 rounded-full border border-emerald-900/60 font-mono';
-
         if (data) {
           songs = Array.isArray(data) ? data : Object.values(data);
-        } else {
+          saveLocalCache();
+        } else if (songs.length === 0) {
           songs = [{
             id: "song-1",
             title: "愛人錯過",
@@ -578,12 +631,12 @@
             lyrics: `作詞：潘雲安  作曲：潘雲安\n\n[C]我肯定在幾百年前就說過愛你\n\n[G]只是你忘了\n\n[Am]我也沒想起\n\n⭐ 重點\n\n[F]我肯定在幾百年前就說過愛你`
           }];
           db.ref('songs').set(songs);
+          saveLocalCache();
         }
         
         updateSongSelectOptions();
         renderTabs();
         renderCurrentTabSong();
-
         hideLoadingSplash();
       });
     };
@@ -610,7 +663,10 @@
     function incrementSongViewCount(index) {
       if (songs[index]) {
         songs[index].viewCount = (songs[index].viewCount || 0) + 1;
-        db.ref(`songs/${index}/viewCount`).set(songs[index].viewCount);
+        saveLocalCache();
+        if (navigator.onLine) {
+          db.ref(`songs/${index}/viewCount`).set(songs[index].viewCount);
+        }
       }
     }
 
@@ -665,6 +721,7 @@
     function confirmDeleteCustomChord(chord, index) {
       if (confirm(`確定要移除快捷和弦 『${chord}』 嗎？`)) {
         customChords.splice(index, 1);
+        saveLocalCache();
         db.ref('custom_chords').set(customChords);
       }
     }
@@ -676,6 +733,7 @@
 
       if (!customChords.includes(newChord)) {
         customChords.push(newChord);
+        saveLocalCache();
         db.ref('custom_chords').set(customChords);
       }
       input.value = '';
@@ -746,6 +804,7 @@
     function confirmDeleteCustomTag(tag, index) {
       if (confirm(`確定要移除標記 『${tag}』 嗎？`)) {
         customTags.splice(index, 1);
+        saveLocalCache();
         db.ref('custom_tags').set(customTags);
       }
     }
@@ -757,6 +816,7 @@
 
       if (!customTags.includes(newTag)) {
         customTags.push(newTag);
+        saveLocalCache();
         db.ref('custom_tags').set(customTags);
       }
       input.value = '';
@@ -778,6 +838,7 @@
       const textareaVal = document.getElementById('input-lyrics').value;
       if (showChords) {
         songs[currentSongIndex].lyrics = textareaVal;
+        saveLocalCache();
       }
     }
 
@@ -804,6 +865,7 @@
         songs[currentSongIndex].prefKey = prefKey;
         songs[currentSongIndex].bpm = bpm;
         songs[currentSongIndex].duration = duration;
+        saveLocalCache();
       }
     }
 
@@ -1182,10 +1244,16 @@
         tabs[activeTabIndex] = songs.length - 1;
       }
 
-      db.ref('songs').set(songs).then(() => {
+      saveLocalCache();
+      if (navigator.onLine) {
+        db.ref('songs').set(songs).then(() => {
+          renderTabs();
+          renderCurrentTabSong();
+        });
+      } else {
         renderTabs();
         renderCurrentTabSong();
-      });
+      }
     }
   </script>
 </body>
