@@ -2,10 +2,8 @@
 <html lang="zh-TW">
 <head>
   <meta charset="UTF-8">
-  <!-- Viewport 鎖定不許縮放 + 全螢幕 WebApp 設定 -->
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <!-- Viewport 鎖定不許縮放 -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no">
   <title>StageNote - 駐唱看詞助手</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/lucide@latest"></script>
@@ -39,10 +37,6 @@
       overflow-y: hidden;
       min-height: 500px;
     }
-    /* 虛擬全螢幕樣式 (iOS Safari 備用) */
-    body.virtual-fullscreen header {
-      display: none !important;
-    }
   </style>
 </head>
 <body class="bg-slate-950 text-slate-100 min-h-screen p-4 pb-12 font-sans select-none">
@@ -73,16 +67,13 @@
         <span id="sync-status" class="text-xs bg-slate-800 text-slate-400 px-3 py-1 rounded-full border border-slate-700 font-mono">連線中...</span>
       </div>
       <div class="flex items-center gap-2">
-        <button onclick="toggleChords()" class="bg-slate-800 hover:bg-slate-700 text-slate-100 text-sm font-semibold px-3.5 py-2.5 rounded-xl border border-slate-700 active:scale-95 transition flex items-center gap-1">
+        <button onclick="toggleChords()" class="bg-slate-800 hover:bg-slate-700 text-slate-100 text-sm font-semibold px-4 py-2.5 rounded-xl border border-slate-700 active:scale-95 transition flex items-center gap-1">
           <span id="chord-toggle-text">和弦: 顯</span>
         </button>
-        <button onclick="toggleTags()" class="bg-slate-800 hover:bg-slate-700 text-slate-100 text-sm font-semibold px-3.5 py-2.5 rounded-xl border border-slate-700 active:scale-95 transition flex items-center gap-1">
+        <button onclick="toggleTags()" class="bg-slate-800 hover:bg-slate-700 text-slate-100 text-sm font-semibold px-4 py-2.5 rounded-xl border border-slate-700 active:scale-95 transition flex items-center gap-1">
           <span id="tag-toggle-text">標記: 顯</span>
         </button>
-        <button onclick="toggleFullScreen()" class="bg-slate-800 hover:bg-slate-700 text-slate-100 text-sm font-semibold p-2.5 rounded-xl border border-slate-700 active:scale-95 transition flex items-center gap-1" title="切換全螢幕">
-          <i data-lucide="maximize" class="w-4 h-4 text-blue-400"></i>
-        </button>
-        <button onclick="enterLiveMode()" class="bg-red-600 hover:bg-red-500 text-white text-base font-extrabold px-4 py-2.5 rounded-xl flex items-center gap-1.5 active:scale-95 transition shadow-lg shadow-red-900/50">
+        <button onclick="enterLiveMode()" class="bg-red-600 hover:bg-red-500 text-white text-base font-extrabold px-5 py-2.5 rounded-xl flex items-center gap-1.5 active:scale-95 transition shadow-lg shadow-red-900/50">
           <i data-lucide="mic" class="w-5 h-5"></i> 演出
         </button>
       </div>
@@ -233,9 +224,6 @@
           <button onclick="toggleTags()" class="bg-zinc-900 hover:bg-zinc-800 active:scale-95 text-zinc-300 px-2.5 py-2 rounded-xl text-xs border border-zinc-800 transition">
             <span id="live-tag-toggle-text">標記: 顯</span>
           </button>
-          <button onclick="toggleFullScreen()" class="bg-zinc-900 hover:bg-zinc-800 active:scale-95 text-zinc-300 p-2 rounded-xl text-xs border border-zinc-800 transition" title="切換全螢幕">
-            <i data-lucide="maximize" class="w-3.5 h-3.5 text-blue-400"></i>
-          </button>
           <button id="live-scroll-btn" onclick="toggleLiveScroll()" class="bg-blue-600 hover:bg-blue-500 active:scale-95 text-white px-4 py-2 rounded-xl text-xs font-bold transition shadow-lg shadow-blue-900/40">
             開始滾動
           </button>
@@ -281,34 +269,6 @@
       }
       lastTouchEnd = now;
     }, false);
-
-    // 智能全螢幕相容邏輯 (支援原生全螢幕 + iOS 虛擬沉浸模式)
-    function toggleFullScreen() {
-      const doc = document.documentElement;
-      const isFull = document.fullscreenElement || document.webkitFullscreenElement;
-
-      if (!isFull) {
-        if (doc.requestFullscreen) {
-          doc.requestFullscreen().catch(() => enableVirtualFullScreen());
-        } else if (doc.webkitRequestFullscreen) {
-          doc.webkitRequestFullscreen();
-        } else {
-          enableVirtualFullScreen();
-        }
-      } else {
-        if (document.exitFullscreen) {
-          document.exitFullscreen();
-        } else if (document.webkitExitFullscreen) {
-          document.webkitExitFullscreen();
-        }
-        document.body.classList.remove('virtual-fullscreen');
-      }
-    }
-
-    function enableVirtualFullScreen() {
-      document.body.classList.toggle('virtual-fullscreen');
-      window.scrollTo(0, 0);
-    }
 
     let songs = [];
     let tabs = [0];
