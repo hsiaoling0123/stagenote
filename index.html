@@ -304,6 +304,12 @@
         </div>
 
         <div class="flex items-center gap-2">
+          <!-- ⛶ 全螢幕切換按鈕 -->
+          <button id="fullscreen-btn" onclick="toggleFullscreen()" class="bg-stone-900 hover:bg-stone-800 active:scale-95 text-stone-300 px-3.5 py-2 rounded-xl text-xs font-medium border border-stone-800 transition flex items-center gap-1">
+            <i data-lucide="maximize" class="w-3.5 h-3.5 text-amber-200/80"></i>
+            <span id="fullscreen-btn-text">全螢幕</span>
+          </button>
+          
           <button onclick="toggleChords()" class="bg-stone-900 hover:bg-stone-800 active:scale-95 text-stone-300 px-3.5 py-2 rounded-xl text-xs font-medium border border-stone-800 transition">
             <span id="live-chord-toggle-text">和弦: 顯</span>
           </button>
@@ -413,6 +419,41 @@
       }
     }
 
+    // --- 全螢幕切換功能 (Fullscreen API) ---
+    function toggleFullscreen() {
+      const doc = document;
+      const docEl = document.documentElement;
+
+      const requestFullscreen = docEl.requestFullscreen || docEl.mozRequestFullScreen || docEl.webkitRequestFullScreen || docEl.msRequestFullscreen;
+      const exitFullscreen = doc.exitFullscreen || doc.mozCancelFullScreen || doc.webkitExitFullscreen || doc.msExitFullscreen;
+
+      const isFullscreen = doc.fullscreenElement || doc.mozFullScreenElement || doc.webkitFullscreenElement || doc.msFullscreenElement;
+
+      if (!isFullscreen) {
+        if (requestFullscreen) {
+          requestFullscreen.call(docEl).catch(err => {
+            console.log("全螢幕請求失敗/不支援", err);
+          });
+        }
+      } else {
+        if (exitFullscreen) {
+          exitFullscreen.call(doc);
+        }
+      }
+    }
+
+    // 監聽全螢幕切換狀態更新 UI 按鈕
+    document.addEventListener("fullscreenchange", updateFullscreenUI);
+    document.addEventListener("webkitfullscreenchange", updateFullscreenUI);
+
+    function updateFullscreenUI() {
+      const isFullscreen = document.fullscreenElement || document.webkitFullscreenElement;
+      const fsBtnText = document.getElementById('fullscreen-btn-text');
+      if (fsBtnText) {
+        fsBtnText.innerText = isFullscreen ? '取消全螢幕' : '全螢幕';
+      }
+    }
+
     window.onload = () => {
       lucide.createIcons();
       initKeySelectOptions();
@@ -492,7 +533,6 @@
       }
     }
 
-    // 渲染和弦按鈕清單
     function renderChordsList() {
       const container = document.getElementById('chords-list-container');
       container.innerHTML = customChords.map((chord, idx) => `
@@ -560,7 +600,6 @@
       input.value = '';
     }
 
-    // 將和弦 [Chord] 插入至歌詞輸入框游標處
     function insertChord(chordText) {
       const textarea = document.getElementById('input-lyrics');
       const start = textarea.selectionStart;
@@ -852,7 +891,7 @@
       showTags = !showTags;
       document.body.classList.toggle('hide-tags', !showTags);
 
-      const normalText = document.getElementById('tag-toggle-text');
+      const normalText = document.getElementById('chord-toggle-text');
       const liveText = document.getElementById('live-tag-toggle-text');
 
       const label = showTags ? '標記: 顯' : '標記: 隱';
@@ -951,6 +990,13 @@
 
     function exitLiveMode() {
       if (isScrolling) toggleLiveScroll();
+      
+      // 若全螢幕開啟中，退出時自動結束全螢幕
+      const isFullscreen = document.fullscreenElement || document.webkitFullscreenElement;
+      if (isFullscreen) {
+        toggleFullscreen();
+      }
+
       document.getElementById('live-view').classList.add('hidden');
       document.getElementById('normal-view').classList.remove('hidden');
     }
