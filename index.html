@@ -406,19 +406,28 @@
       document.getElementById('live-lyrics-container').innerHTML = generateLyricsHTML(song.lyrics, true);
     }
 
+    // 💡 修正標記辨識與包裹的邏輯
     function generateLyricsHTML(lyricsText, isLive = false) {
       if (!lyricsText) return '';
       const lines = lyricsText.split('\n');
+      
+      // 標記關鍵字列表
+      const tagKeywords = ['換氣', 'Mic拉遠', 'Mic靠近', '情緒', '微笑', '看觀眾', '互動', 'Solo', '吉他Solo', '鼓Fill', '升Key', '降Key', '重點', '小心高音', '放輕鬆'];
+
       return lines.map(line => {
+        const trimmed = line.trim();
+        // 檢查該行是否包含 Emoji 或演出標記關鍵字
+        const hasEmoji = /[\u{1F300}-\u{1F9FF}]/u.test(trimmed);
+        const hasKeyword = tagKeywords.some(kw => trimmed.includes(kw));
+
+        if ((hasEmoji || hasKeyword) && !trimmed.includes('[')) {
+          return `<div class="stage-tag text-amber-400 font-bold ${isLive ? 'text-2xl py-1' : 'text-lg py-0.5'} flex items-center gap-1">${trimmed}</div>`;
+        }
+
         let lineHtml = '<div class="flex flex-wrap items-end gap-x-3 my-2">';
         const regex = /\[(.*?)\]([^\[]*)/g;
         let match;
         let hasChord = false;
-
-        const isTag = /[\u{1F300}-\u{1F9FF}]/u.test(line);
-        if (isTag && !line.includes('[')) {
-          return `<div class="stage-tag text-amber-400 font-bold ${isLive ? 'text-2xl py-1' : 'text-lg py-0.5'} flex items-center gap-1">${line}</div>`;
-        }
 
         while ((match = regex.exec(line)) !== null) {
           hasChord = true;
