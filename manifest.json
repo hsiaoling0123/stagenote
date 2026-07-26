@@ -3,7 +3,7 @@
   "short_name": "StageNote",
   "id": "stagenote-app",
   "description": "StageNote 駐唱看詞助手",
-  "start_url": "./",
+  "start_url": "https://hsiaoling0123.github.io/",
   "display": "standalone",
   "background_color": "#09090b",
   "theme_color": "#09090b",
@@ -20,5 +20,6 @@
       "type": "image/png",
       "purpose": "any"
     }
-  ]
+  ],
+  "dir": "auto"
 }
