@@ -54,7 +54,7 @@
 
   <!-- 常規模式 UI -->
   <div id="normal-view">
-    <!-- 頂部功能導覽 (全面加大升級) -->
+    <!-- 頂部功能導覽 -->
     <header class="flex justify-between items-center border-b border-slate-800 pb-4 mb-3">
       <div class="flex items-center gap-3">
         <i data-lucide="music" class="text-blue-500 w-7 h-7"></i>
@@ -74,7 +74,7 @@
       </div>
     </header>
 
-    <!-- 多頁籤分頁列 (Tabs Bar - 加大觸控範圍) -->
+    <!-- 多頁籤分頁列 (Tabs Bar) -->
     <div class="flex items-center gap-2 mb-5 overflow-x-auto no-scrollbar pb-2 border-b border-slate-800/80" id="tabs-container">
     </div>
 
@@ -115,7 +115,7 @@
         </div>
       </div>
 
-      <!-- 右側：加大工具欄 (Sticky Top-4) -->
+      <!-- 右側：工具欄（含新增自訂標記功能） -->
       <div class="w-full md:w-6/12 lg:w-5/12 bg-slate-900 border border-slate-800 rounded-2xl p-6 flex flex-col gap-5 shadow-2xl sticky top-4 h-fit z-30 shrink-0">
         <div class="flex justify-between items-center border-b border-slate-800 pb-3">
           <h3 class="text-lg font-bold text-white flex items-center gap-2">
@@ -155,26 +155,22 @@
           </div>
         </div>
 
-        <!-- 快速標記區 -->
+        <!-- 快速標記區與新增自訂標記 -->
         <div>
-          <label class="text-sm text-blue-400 mb-2 block font-bold flex items-center gap-1">
+          <label class="text-sm text-blue-400 mb-2 block font-bold flex justify-between items-center">
             <span>⚡ 快速插入演出標記</span>
           </label>
-          <div class="flex flex-wrap gap-2 max-h-56 overflow-y-auto p-3 bg-slate-950 rounded-xl border border-slate-800">
-            <button onclick="insertTag('🫁 換氣')" class="bg-slate-800 hover:bg-slate-700 active:scale-95 text-sm font-medium px-3 py-2 rounded-lg text-slate-100 border border-slate-700 transition">🫁 換氣</button>
-            <button onclick="insertTag('🎤 Mic拉遠')" class="bg-slate-800 hover:bg-slate-700 active:scale-95 text-sm font-medium px-3 py-2 rounded-lg text-slate-100 border border-slate-700 transition">🎤 Mic拉遠</button>
-            <button onclick="insertTag('🎤 Mic靠近')" class="bg-slate-800 hover:bg-slate-700 active:scale-95 text-sm font-medium px-3 py-2 rounded-lg text-slate-100 border border-slate-700 transition">🎤 Mic靠近</button>
-            <button onclick="insertTag('🔥 情緒')" class="bg-slate-800 hover:bg-slate-700 active:scale-95 text-sm font-medium px-3 py-2 rounded-lg text-slate-100 border border-slate-700 transition">🔥 情緒</button>
-            <button onclick="insertTag('❤️ 微笑')" class="bg-slate-800 hover:bg-slate-700 active:scale-95 text-sm font-medium px-3 py-2 rounded-lg text-slate-100 border border-slate-700 transition">❤️ 微笑</button>
-            <button onclick="insertTag('👀 看觀眾')" class="bg-slate-800 hover:bg-slate-700 active:scale-95 text-sm font-medium px-3 py-2 rounded-lg text-slate-100 border border-slate-700 transition">👀 看觀眾</button>
-            <button onclick="insertTag('🤝 互動')" class="bg-slate-800 hover:bg-slate-700 active:scale-95 text-sm font-medium px-3 py-2 rounded-lg text-slate-100 border border-slate-700 transition">🤝 互動</button>
-            <button onclick="insertTag('🎸 吉他Solo')" class="bg-slate-800 hover:bg-slate-700 active:scale-95 text-sm font-medium px-3 py-2 rounded-lg text-slate-100 border border-slate-700 transition">🎸 Solo</button>
-            <button onclick="insertTag('🥁 鼓Fill')" class="bg-slate-800 hover:bg-slate-700 active:scale-95 text-sm font-medium px-3 py-2 rounded-lg text-slate-100 border border-slate-700 transition">🥁 鼓Fill</button>
-            <button onclick="insertTag('⬆️ 升Key')" class="bg-slate-800 hover:bg-slate-700 active:scale-95 text-sm font-medium px-3 py-2 rounded-lg text-slate-100 border border-slate-700 transition">⬆️ 升Key</button>
-            <button onclick="insertTag('⬇️ 降Key')" class="bg-slate-800 hover:bg-slate-700 active:scale-95 text-sm font-medium px-3 py-2 rounded-lg text-slate-100 border border-slate-700 transition">⬇️ 降Key</button>
-            <button onclick="insertTag('⭐ 重點')" class="bg-slate-800 hover:bg-slate-700 active:scale-95 text-sm font-medium px-3 py-2 rounded-lg text-slate-100 border border-slate-700 transition">⭐ 重點</button>
-            <button onclick="insertTag('⚠️ 小心高音')" class="bg-slate-800 hover:bg-slate-700 active:scale-95 text-sm font-medium px-3 py-2 rounded-lg text-slate-100 border border-slate-700 transition">⚠️ 小心高音</button>
-            <button onclick="insertTag('😌 放輕鬆')" class="bg-slate-800 hover:bg-slate-700 active:scale-95 text-sm font-medium px-3 py-2 rounded-lg text-slate-100 border border-slate-700 transition">😌 放輕鬆</button>
+          
+          <div id="tags-list-container" class="flex flex-wrap gap-2 max-h-56 overflow-y-auto p-3 bg-slate-950 rounded-xl border border-slate-800 mb-3">
+            <!-- 動態渲染標記 -->
+          </div>
+
+          <!-- 自訂標記輸入區 -->
+          <div class="flex gap-2">
+            <input id="custom-tag-input" type="text" placeholder="輸入自訂標記 (如: 🎸 換吉他)..." class="flex-1 bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500">
+            <button onclick="addCustomTag()" class="bg-blue-600 hover:bg-blue-500 text-white text-sm font-bold px-4 py-2 rounded-xl transition active:scale-95 shrink-0 flex items-center gap-1">
+              <i data-lucide="plus" class="w-4 h-4"></i> 新增
+            </button>
           </div>
         </div>
 
@@ -280,6 +276,13 @@
     let showChords = true;
     let showTags = true;
 
+    // 預設標記清單
+    let customTags = [
+      '🫁 換氣', '🎤 Mic拉遠', '🎤 Mic靠近', '🔥 情緒', '❤️ 微笑', 
+      '👀 看觀眾', '🤝 互動', '🎸 吉他Solo', '🥁 鼓Fill', '⬆️ 升Key', 
+      '⬇️ 降Key', '⭐ 重點', '⚠️ 小心高音', '😌 放輕鬆'
+    ];
+
     const allKeys = [
       "-",
       "C", "C# / Db", "D", "D# / Eb", "E", "F", "F# / Gb", "G", "G# / Ab", "A", "A# / Bb", "B",
@@ -321,6 +324,16 @@
         }
       });
 
+      // 監聽 Firebase 標記清單
+      db.ref('custom_tags').on('value', (snapshot) => {
+        const data = snapshot.val();
+        if (data) {
+          customTags = Array.isArray(data) ? data : Object.values(data);
+        }
+        renderTagsList();
+      });
+
+      // 監聽 Firebase 歌曲資料
       db.ref('songs').on('value', (snapshot) => {
         const data = snapshot.val();
         document.getElementById('sync-status').innerText = '雲端已同步';
@@ -346,6 +359,38 @@
         renderCurrentTabSong();
       });
     };
+
+    // 渲染演出標記按鈕清單
+    function renderTagsList() {
+      const container = document.getElementById('tags-list-container');
+      container.innerHTML = customTags.map((tag, idx) => `
+        <div class="group relative flex items-center">
+          <button onclick="insertTag('${tag}')" class="bg-slate-800 hover:bg-slate-700 active:scale-95 text-sm font-medium px-3 py-2 rounded-lg text-slate-100 border border-slate-700 transition flex items-center gap-1">
+            ${tag}
+          </button>
+          <button onclick="deleteCustomTag(${idx})" class="text-slate-500 hover:text-red-400 ml-1 text-xs p-1" title="刪除此標記">✕</button>
+        </div>
+      `).join('');
+    }
+
+    // 新增自訂標記
+    function addCustomTag() {
+      const input = document.getElementById('custom-tag-input');
+      const newTag = input.value.trim();
+      if (!newTag) return;
+
+      if (!customTags.includes(newTag)) {
+        customTags.push(newTag);
+        db.ref('custom_tags').set(customTags);
+      }
+      input.value = '';
+    }
+
+    // 刪除自訂標記
+    function deleteCustomTag(index) {
+      customTags.splice(index, 1);
+      db.ref('custom_tags').set(customTags);
+    }
 
     function initKeySelectOptions() {
       const keySelect = document.getElementById('input-key');
@@ -387,7 +432,7 @@
       }
     }
 
-    // --- 分頁邏輯 (Tabs Logic - 全面加大) ---
+    // --- 分頁邏輯 (Tabs Logic) ---
     function renderTabs() {
       const container = document.getElementById('tabs-container');
       const liveContainer = document.getElementById('live-tabs-container');
@@ -581,15 +626,15 @@
     function generateLyricsHTML(lyricsText, isLive = false) {
       if (!lyricsText) return '';
       const lines = lyricsText.split('\n');
-      
-      const tagKeywords = ['換氣', 'Mic拉遠', 'Mic靠近', '情緒', '微笑', '看觀眾', '互動', 'Solo', '吉他Solo', '鼓Fill', '升Key', '降Key', '重點', '小心高音', '放輕鬆'];
 
       return lines.map(line => {
         const trimmed = line.trim();
         const hasEmoji = /[\u{1F300}-\u{1F9FF}]/u.test(trimmed);
-        const hasKeyword = tagKeywords.some(kw => trimmed.includes(kw));
+        
+        // 解析所有演出標記
+        const isTag = customTags.some(tag => trimmed.includes(tag.replace(/[\u{1F300}-\u{1F9FF}]/u, '').trim()));
 
-        if ((hasEmoji || hasKeyword) && !trimmed.includes('[')) {
+        if ((hasEmoji || isTag) && !trimmed.includes('[')) {
           return `<div class="stage-tag text-amber-400 font-bold ${isLive ? 'text-2xl py-1' : 'text-lg py-0.5'} flex items-center gap-1">${trimmed}</div>`;
         }
 
