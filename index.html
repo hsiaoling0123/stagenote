@@ -2,7 +2,7 @@
 <html lang="zh-TW">
 <head>
   <meta charset="UTF-8">
-  <!-- 1. Viewport 鎖定不許縮放 -->
+  <!-- Viewport 鎖定不許縮放 -->
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no">
   <title>StageNote - 駐唱看詞助手</title>
   <script src="https://cdn.tailwindcss.com"></script>
@@ -11,7 +11,7 @@
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
   <style>
-    /* 2. 禁用所有 Touch 雙擊放大與手勢縮放 */
+    /* 禁用所有 Touch 雙擊放大與手勢縮放 */
     *, html, body {
       touch-action: manipulation;
     }
@@ -188,9 +188,11 @@
     </div>
   </div>
 
-  <!-- 🎤 演出模式 (Live Mode) -->
-  <div id="live-view" class="fixed inset-0 bg-black z-50 hidden flex flex-col p-4 overflow-y-auto">
-    <div class="sticky top-0 bg-black/90 backdrop-blur-lg z-10 border-b border-zinc-800 pb-3 mb-2 space-y-2.5">
+  <!-- 🎤 演出模式 (Live Mode - 頂部控制欄固定懸浮於最上方) -->
+  <div id="live-view" class="fixed inset-0 bg-black z-50 hidden flex flex-col p-4 pt-36 overflow-y-auto">
+    
+    <!-- 固定懸浮最上層工具欄 (Fixed Top) -->
+    <div class="fixed top-0 left-0 right-0 bg-black/95 backdrop-blur-xl z-50 border-b border-zinc-800 p-4 space-y-2.5 shadow-2xl">
       <div class="flex items-center justify-between gap-2">
         <div class="flex items-center gap-2 min-w-0">
           <span class="shrink-0 bg-red-600 text-white text-[10px] font-black px-1.5 py-0.5 rounded tracking-widest">LIVE</span>
@@ -208,30 +210,31 @@
       </div>
 
       <div class="flex items-center justify-between gap-2 pt-1">
-        <div class="flex items-center gap-1 bg-zinc-900 px-2 py-1 rounded-lg border border-zinc-800 text-xs text-zinc-300">
-          <span class="text-zinc-400 text-[11px]">速度</span>
-          <button onclick="adjustSpeed(-1)" class="w-6 h-6 bg-zinc-800 hover:bg-zinc-700 active:scale-90 rounded flex items-center justify-center font-bold text-zinc-200">-</button>
-          <span id="speed-label" class="w-5 text-center font-mono font-bold text-blue-400">5</span>
-          <button onclick="adjustSpeed(1)" class="w-6 h-6 bg-zinc-800 hover:bg-zinc-700 active:scale-90 rounded flex items-center justify-center font-bold text-zinc-200">+</button>
+        <div class="flex items-center gap-1 bg-zinc-900 px-2.5 py-1.5 rounded-xl border border-zinc-800 text-xs text-zinc-300">
+          <span class="text-zinc-400 text-[11px] font-medium">速度</span>
+          <button onclick="adjustSpeed(-1)" class="w-7 h-7 bg-zinc-800 hover:bg-zinc-700 active:scale-90 rounded-lg flex items-center justify-center font-bold text-zinc-100 text-base">-</button>
+          <span id="speed-label" class="w-6 text-center font-mono font-bold text-blue-400 text-sm">5</span>
+          <button onclick="adjustSpeed(1)" class="w-7 h-7 bg-zinc-800 hover:bg-zinc-700 active:scale-90 rounded-lg flex items-center justify-center font-bold text-zinc-100 text-base">+</button>
         </div>
 
         <div class="flex items-center gap-1.5">
-          <button onclick="toggleChords()" class="bg-zinc-900 hover:bg-zinc-800 active:scale-95 text-zinc-300 px-2 py-1.5 rounded-lg text-xs border border-zinc-800 transition">
+          <button onclick="toggleChords()" class="bg-zinc-900 hover:bg-zinc-800 active:scale-95 text-zinc-300 px-2.5 py-2 rounded-xl text-xs border border-zinc-800 transition">
             <span id="live-chord-toggle-text">和弦: 顯</span>
           </button>
-          <button onclick="toggleTags()" class="bg-zinc-900 hover:bg-zinc-800 active:scale-95 text-zinc-300 px-2 py-1.5 rounded-lg text-xs border border-zinc-800 transition">
+          <button onclick="toggleTags()" class="bg-zinc-900 hover:bg-zinc-800 active:scale-95 text-zinc-300 px-2.5 py-2 rounded-xl text-xs border border-zinc-800 transition">
             <span id="live-tag-toggle-text">標記: 顯</span>
           </button>
-          <button id="live-scroll-btn" onclick="toggleLiveScroll()" class="bg-blue-600 hover:bg-blue-500 active:scale-95 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition">
+          <button id="live-scroll-btn" onclick="toggleLiveScroll()" class="bg-blue-600 hover:bg-blue-500 active:scale-95 text-white px-4 py-2 rounded-xl text-xs font-bold transition shadow-lg shadow-blue-900/40">
             開始滾動
           </button>
-          <button onclick="exitLiveMode()" class="bg-zinc-800 hover:bg-zinc-700 active:scale-95 text-zinc-300 px-2.5 py-1.5 rounded-lg text-xs border border-zinc-700 transition">
+          <button onclick="exitLiveMode()" class="bg-zinc-800 hover:bg-zinc-700 active:scale-95 text-zinc-300 px-3 py-2 rounded-xl text-xs border border-zinc-700 transition">
             退出
           </button>
         </div>
       </div>
     </div>
 
+    <!-- 歌詞呈現區 -->
     <div id="live-lyrics-container" class="flex-1 space-y-8 text-3xl font-bold tracking-wide text-white pb-60">
     </div>
   </div>
@@ -257,12 +260,12 @@
   </div>
 
   <script>
-    // 3. 全局攔截 Safari / Chrome 觸控雙擊縮放 (Double-tap zoom prevention)
+    // 攔截 Safari / Chrome 觸控雙擊縮放 (Double-tap zoom prevention)
     let lastTouchEnd = 0;
     document.addEventListener('touchend', function (event) {
       const now = (new Date()).getTime();
       if (now - lastTouchEnd <= 300) {
-        event.preventDefault(); // 攔截 300ms 內的第二下觸控，阻止雙擊放大
+        event.preventDefault();
       }
       lastTouchEnd = now;
     }, false);
