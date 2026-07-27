@@ -1,396 +1,1441 @@
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>StageNote - 駐唱看詞助手</title>
-    <!-- PWA Web App Manifest Settings -->
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/3844/3844724.png">
-    
-    <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    
-    <!-- Firebase SDK (v8 Compatible) -->
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+  <meta charset="UTF-8">
+  <!-- Viewport 鎖定不許縮放 -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#09090b">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>StageNote - 駐唱看詞助手</title>
 
-    <style>
-        body { background-color: #121212; color: #e0e0e0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; touch-action: manipulation; }
-        .stage-tag { font-size: 1.15rem; font-weight: bold; color: #38bdf8; padding: 2px 6px; background-color: rgba(56, 189, 248, 0.1); border-radius: 4px; display: inline-block; margin-top: 6px; }
-        .hl { background-color: #facc15; color: #000; font-weight: bold; padding: 0 4px; border-radius: 2px; }
-        .toast { visibility: hidden; min-width: 160px; background-color: #333; color: #fff; text-align: center; border-radius: 8px; padding: 12px; position: fixed; z-index: 50; bottom: 30px; left: 50%; transform: translateX(-50%); opacity: 0; transition: opacity 0.3s, visibility 0.3s; }
-        .toast.show { visibility: visible; opacity: 1; }
-    </style>
+  <!-- PWA Manifest -->
+  <link rel="manifest" href="manifest.json">
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;600;900&display=swap');
+
+    *, html, body {
+      touch-action: manipulation;
+    }
+    .font-serif-tc {
+      font-family: 'Noto Serif TC', Georgia, serif;
+    }
+    body.hide-chords .chord-label {
+      display: none !important;
+    }
+    body.hide-tags .stage-tag {
+      display: none !important;
+    }
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+    .auto-expand-textarea {
+      resize: none;
+      overflow-y: hidden;
+      min-height: 500px;
+    }
+    @keyframes spin-slow {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+    .animate-spin-slow {
+      animation: spin-slow 12s linear infinite;
+    }
+    .immersive-fullscreen {
+      position: fixed !important;
+      top: 0 !important;
+      left: 0 !important;
+      width: 100vw !important;
+      height: 100vh !important;
+      z-index: 9999 !important;
+    }
+    /* 🖍️ 演出模式下的螢光筆高亮樣式 */
+    .highlight-mark {
+      background-color: rgba(251, 191, 36, 0.4);
+      color: #fef08a;
+      padding: 0px 6px;
+      border-radius: 4px;
+      border-bottom: 2px solid #f59e0b;
+      display: inline-block;
+    }
+    /* 隱藏 number 輸入框預設的箭頭按鈕 */
+    input[type=number]::-webkit-inner-spin-button, 
+    input[type=number]::-webkit-outer-spin-button { 
+      -webkit-appearance: none;
+      margin: 0;
+    }
+    input[type=number] {
+      -moz-appearance: textfield;
+    }
+  </style>
 </head>
-<body class="h-screen flex flex-col overflow-hidden">
+<body class="bg-zinc-950 text-stone-200 min-h-screen p-4 md:p-8 pb-16 font-sans select-none antialiased">
 
-    <!-- Toast 提示框 -->
-    <div id="toast" class="toast text-sm shadow-lg border border-gray-700">已儲存</div>
+  <!-- 🔐 未登入時的登入蓋版 Modal -->
+  <div id="login-overlay" class="fixed inset-0 bg-zinc-950/95 backdrop-blur-md z-[20000] flex flex-col items-center justify-center p-6 text-center">
+    <div class="bg-stone-900 border border-stone-800 rounded-3xl p-8 max-w-sm w-full shadow-2xl flex flex-col items-center gap-6">
+      <div class="w-16 h-16 rounded-full bg-stone-800 border border-stone-700 flex items-center justify-center text-amber-200/90 shadow-inner">
+        <i data-lucide="disc" class="w-8 h-8"></i>
+      </div>
+      <div>
+        <h2 class="text-2xl font-serif-tc font-bold text-stone-100">StageNote</h2>
+        <p class="text-xs text-stone-400 mt-2 font-serif-tc">登入以同步雲端歌單與專屬設定</p>
+      </div>
 
-    <!-- 頂部導覽列 -->
-    <header class="bg-gray-900 border-b border-gray-800 p-3 flex justify-between items-center z-10 shrink-0">
-        <h1 class="text-xl font-bold text-sky-400 tracking-wider">StageNote</h1>
-        <div class="flex items-center gap-2">
-            <!-- 登入 / 使用者狀態區塊 -->
-            <div id="auth-section">
-                <button id="login-btn" onclick="loginGoogle()" class="hidden bg-sky-600 hover:bg-sky-500 text-white text-xs px-3 py-1.5 rounded-lg font-medium transition">
-                    Google 登入
-                </button>
-                <div id="user-info" class="hidden flex items-center gap-2">
-                    <img id="user-avatar" class="w-7 h-7 rounded-full border border-sky-400" src="" alt="avatar">
-                    <button onclick="logoutGoogle()" class="text-xs text-gray-400 hover:text-white underline">登出</button>
-                </div>
-            </div>
-            <button id="mode-toggle-btn" onclick="toggleMode()" class="bg-gray-800 hover:bg-gray-700 border border-gray-700 text-sky-400 text-xs px-3 py-1.5 rounded-lg font-medium">
-                進入演出模式
-            </button>
+      <button onclick="loginWithGoogle()" class="w-full bg-stone-100 hover:bg-white text-zinc-950 font-semibold py-3 px-4 rounded-xl transition active:scale-95 flex items-center justify-center gap-3 shadow-lg text-sm">
+        <svg class="w-4 h-4" viewBox="0 0 24 24">
+          <path fill="#EA4335" d="M12 5c1.6 0 3 .6 4.1 1.6l3.1-3.1C17.3 1.7 14.8 1 12 1 7.5 1 3.7 3.6 1.9 7.3l3.7 2.9C6.5 7.3 9 5 12 5z"/>
+          <path fill="#4285F4" d="M23.5 12.3c0-.8-.1-1.6-.2-2.3H12v4.6h6.5c-.3 1.5-1.1 2.8-2.4 3.7l3.7 2.9c2.2-2 3.7-5 3.7-8.9z"/>
+          <path fill="#FBBC05" d="M5.6 14.8c-.2-.7-.4-1.5-.4-2.3s.2-1.6.4-2.3L1.9 7.3C.7 9.7 0 10.8 0 12.3s.7 2.6 1.9 5l3.7-2.5z"/>
+          <path fill="#34A853" d="M12 23c3.2 0 6-1.1 8-3l-3.7-2.9c-1.1.7-2.5 1.2-4.3 1.2-3 0-5.5-2.3-6.4-5.2L1.9 16C3.7 19.7 7.5 23 12 23z"/>
+        </svg>
+        使用 Google 帳號登入
+      </button>
+    </div>
+  </div>
+
+  <!-- 🍞 自動消失的保存提示（Toast） -->
+  <div id="toast-message" class="fixed top-6 left-1/2 -translate-x-1/2 bg-emerald-900/90 text-emerald-100 border border-emerald-500/50 px-5 py-2.5 rounded-full text-xs md:text-sm font-semibold tracking-wider shadow-2xl z-[10001] transition-all duration-300 opacity-0 pointer-events-none translate-y-[-10px] flex items-center gap-2">
+    <i data-lucide="check-circle" class="w-4 h-4 text-emerald-300"></i>
+    <span id="toast-text">已保存！</span>
+  </div>
+
+  <!-- 🌟 載入中：歌手專屬打氣 Splash 畫面 -->
+  <div id="loading-splash" class="fixed inset-0 bg-zinc-950 z-[1000] flex flex-col items-center justify-center p-6 transition-opacity duration-700 opacity-100">
+    <div class="flex flex-col items-center max-w-sm text-center gap-6">
+      <div class="relative flex items-center justify-center">
+        <div class="w-20 h-20 rounded-full bg-stone-900 border border-stone-800 flex items-center justify-center shadow-2xl animate-spin-slow">
+          <i data-lucide="disc" class="w-10 h-10 text-amber-200/80"></i>
         </div>
+        <div class="absolute w-4 h-4 rounded-full bg-zinc-950 border border-stone-800"></div>
+      </div>
+
+      <div class="space-y-3">
+        <h2 class="text-xs font-mono tracking-widest text-stone-500 uppercase">StageNote · Live Assistant</h2>
+        <p id="cheer-message" class="text-lg md:text-xl font-serif-tc font-medium text-stone-200 leading-relaxed tracking-wider px-2">
+          今夜的舞台屬於你，放輕鬆享受音樂吧。
+        </p>
+      </div>
+
+      <div class="flex items-center gap-1.5 pt-4">
+        <span id="loading-ping" class="w-1.5 h-1.5 rounded-full bg-amber-200/80 animate-ping"></span>
+        <span id="loading-text" class="text-[11px] font-mono text-stone-500 tracking-wider">驗證身份中...</span>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyCSC1b6OVWEdNajEG2awFnvWQ5Wb84S620",
+      authDomain: "stagenote-25687.firebaseapp.com",
+      databaseURL: "https://stagenote-25687-default-rtdb.firebaseio.com",
+      projectId: "stagenote-25687",
+      storageBucket: "stagenote-25687.firebasestorage.app",
+      messagingSenderId: "610245170171",
+      appId: "1:610245170171:web:ee4548c6cb08186faef15e"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+    const auth = firebase.auth();
+
+    let currentUser = null;
+
+    const cheerMessages = [
+      "今夜的舞台屬於你，放輕鬆享受音樂吧。",
+      "深呼吸，把心交給旋律，你會唱得很棒！",
+      "每一個音符都是你的故事，今晚盡情綻放。",
+      "觀眾正期待著你的聲音，上台享受這個時刻吧。",
+      "台下的掌聲正為你準備著，加油！",
+      "相信你的歌聲，今晚你是最耀眼的存在。",
+      "享受每一個樂句，把溫暖唱進大家心裡。"
+    ];
+
+    document.addEventListener("DOMContentLoaded", () => {
+      const randomIndex = Math.floor(Math.random() * cheerMessages.length);
+      const cheerEl = document.getElementById('cheer-message');
+      if (cheerEl) cheerEl.innerText = cheerMessages[randomIndex];
+    });
+
+    function loginWithGoogle() {
+      const provider = new firebase.auth.GoogleAuthProvider();
+      auth.signInWithPopup(provider).catch((error) => {
+        alert("登入失敗：" + error.message);
+      });
+    }
+
+    function logout() {
+      if (confirm("確定要登出嗎？")) {
+        auth.signOut().then(() => {
+          location.reload();
+        });
+      }
+    }
+  </script>
+
+  <!-- 常規模式 UI -->
+  <div id="normal-view" class="max-w-6xl mx-auto">
+    <header class="flex flex-wrap justify-between items-center border-b border-stone-800 pb-5 mb-6 gap-4">
+      <div class="flex items-center gap-3.5">
+        <div class="w-8 h-8 rounded-full bg-stone-800 border border-stone-700 flex items-center justify-center text-amber-200/90">
+          <i data-lucide="disc" class="w-4 h-4"></i>
+        </div>
+        <h1 class="text-2xl font-serif-tc font-semibold tracking-widest text-stone-100">StageNote</h1>
+        <span id="sync-status" class="text-[11px] bg-stone-900 text-stone-500 px-3 py-1 rounded-full border border-stone-800 font-mono">連線中...</span>
+        
+        <button onclick="createNewSongWithNewTab()" class="bg-stone-800 hover:bg-stone-700 text-amber-200/90 text-xs font-medium px-3.5 py-1.5 rounded-full border border-amber-500/20 active:scale-95 transition flex items-center gap-1.5 shadow-sm">
+          <i data-lucide="plus" class="w-3.5 h-3.5"></i> 新增歌曲
+        </button>
+      </div>
+
+      <div class="flex items-center gap-2.5">
+        <!-- 👤 會員頭像/登出按鈕 -->
+        <div id="user-profile-bar" class="hidden flex items-center gap-2 bg-stone-900 px-3 py-1 rounded-full border border-stone-800">
+          <img id="user-avatar" src="" class="w-5 h-5 rounded-full">
+          <span id="user-name" class="text-xs font-medium text-stone-300 max-w-[80px] truncate">用戶</span>
+          <button onclick="logout()" class="text-stone-500 hover:text-rose-400 p-0.5 ml-1 transition" title="登出">
+            <i data-lucide="log-out" class="w-3.5 h-3.5"></i>
+          </button>
+        </div>
+
+        <button onclick="toggleChords()" class="bg-stone-900 hover:bg-stone-800 text-stone-300 text-xs font-medium px-4 py-2 rounded-full border border-stone-800 active:scale-95 transition">
+          <span id="chord-toggle-text">和弦: 顯</span>
+        </button>
+        <button onclick="toggleTags()" class="bg-stone-900 hover:bg-stone-800 text-stone-300 text-xs font-medium px-4 py-2 rounded-full border border-stone-800 active:scale-95 transition">
+          <span id="tag-toggle-text">標記: 顯</span>
+        </button>
+        <button onclick="enterLiveMode()" class="bg-rose-900/80 hover:bg-rose-800 text-rose-100 text-sm font-semibold px-5 py-2 rounded-full border border-rose-700/50 flex items-center gap-1.5 active:scale-95 transition shadow-lg">
+          <i data-lucide="mic" class="w-4 h-4"></i> 演出模式
+        </button>
+      </div>
     </header>
 
-    <!-- 主內容區 -->
-    <div class="flex-1 flex overflow-hidden">
-        <!-- 左側歌單面板 -->
-        <aside id="sidebar" class="w-1/3 max-w-xs bg-gray-900 border-r border-gray-800 flex flex-col shrink-0">
-            <div class="p-3 border-b border-gray-800 flex gap-2">
-                <input id="search-input" type="text" placeholder="搜尋歌曲/歌手..." oninput="filterSongs()" class="w-full bg-gray-800 text-sm text-gray-200 rounded px-2.5 py-1.5 outline-none focus:ring-1 focus:ring-sky-500 border border-gray-700">
-                <button onclick="createNewSong()" class="bg-sky-600 text-white text-lg font-bold px-3 py-1 rounded hover:bg-sky-500 shrink-0">+</button>
-            </div>
-            <ul id="song-list" class="flex-1 overflow-y-auto divide-y divide-gray-800/50">
-                <!-- 歌單會動態渲染於此 -->
-            </ul>
-        </aside>
-
-        <!-- 右側編輯/顯示區 -->
-        <main class="flex-1 flex flex-col bg-gray-950 relative overflow-hidden">
-            <!-- 模式一：編輯區 -->
-            <div id="editor-view" class="flex-1 flex flex-col p-4 overflow-y-auto">
-                <div class="flex flex-wrap gap-2 mb-3">
-                    <input id="edit-title" type="text" placeholder="歌名" oninput="autoSave()" class="flex-1 min-w-[120px] bg-gray-900 border border-gray-800 rounded px-3 py-1.5 text-lg font-bold text-white outline-none focus:border-sky-500">
-                    <input id="edit-artist" type="text" placeholder="歌手" oninput="autoSave()" class="w-28 bg-gray-900 border border-gray-800 rounded px-3 py-1.5 text-sm text-gray-300 outline-none focus:border-sky-500">
-                    <input id="edit-key" type="text" placeholder="Key" oninput="autoSave()" class="w-16 bg-gray-900 border border-gray-800 rounded px-2 py-1.5 text-sm text-center text-sky-400 outline-none focus:border-sky-500">
-                    <input id="edit-bpm" type="number" placeholder="BPM" oninput="autoSave()" class="w-20 bg-gray-900 border border-gray-800 rounded px-2 py-1.5 text-sm text-center text-amber-400 outline-none focus:border-sky-500">
-                </div>
-
-                <!-- 編輯輔助按鈕列 -->
-                <div class="flex gap-2 mb-2">
-                    <button onclick="insertTag('[Intro]')" class="text-xs bg-gray-800 hover:bg-gray-700 text-sky-300 px-2 py-1 rounded border border-gray-700">+ Intro</button>
-                    <button onclick="insertTag('[Verse]')" class="text-xs bg-gray-800 hover:bg-gray-700 text-sky-300 px-2 py-1 rounded border border-gray-700">+ Verse</button>
-                    <button onclick="insertTag('[Chorus]')" class="text-xs bg-gray-800 hover:bg-gray-700 text-sky-300 px-2 py-1 rounded border border-gray-700">+ Chorus</button>
-                    <button onclick="insertTag('[Bridge]')" class="text-xs bg-gray-800 hover:bg-gray-700 text-sky-300 px-2 py-1 rounded border border-gray-700">+ Bridge</button>
-                    <button onclick="applyHighlight()" class="text-xs bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 px-2.5 py-1 rounded font-medium">螢光筆</button>
-                    <button onclick="deleteCurrentSong()" class="text-xs bg-red-900/30 hover:bg-red-800/40 text-red-400 border border-red-800/50 px-2.5 py-1 rounded ml-auto">刪除歌曲</button>
-                </div>
-
-                <textarea id="edit-content" oninput="autoSave()" placeholder="在此輸入歌詞與和弦...&#10;可以使用 [[文字]] 來加上黃色螢光筆畫重點。" class="flex-1 w-full bg-gray-900 border border-gray-800 rounded p-3 text-gray-200 font-mono text-base outline-none resize-none focus:border-sky-500 leading-relaxed"></textarea>
-            </div>
-
-            <!-- 模式二：演出 Live 視圖 -->
-            <div id="live-view" class="hidden flex-1 flex flex-col p-6 overflow-y-auto bg-black">
-                <div class="flex justify-between items-start border-b border-gray-800 pb-3 mb-4">
-                    <div>
-                        <h2 id="live-title" class="text-3xl font-extrabold text-white tracking-wide">--</h2>
-                        <p id="live-artist" class="text-lg text-gray-400 mt-0.5">--</p>
-                    </div>
-                    <div class="flex gap-3 text-right">
-                        <div class="bg-sky-950/60 border border-sky-800/50 rounded-lg px-3 py-1">
-                            <span class="text-xs text-sky-400 block font-semibold">KEY</span>
-                            <span id="live-key" class="text-xl font-bold text-sky-200">--</span>
-                        </div>
-                        <div class="bg-amber-950/60 border border-amber-800/50 rounded-lg px-3 py-1">
-                            <span class="text-xs text-amber-400 block font-semibold">BPM</span>
-                            <span id="live-bpm" class="text-xl font-bold text-amber-200">--</span>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- 歌詞排版渲染區 -->
-                <div id="live-content" class="flex-1 text-xl leading-loose font-mono text-gray-100 whitespace-pre-wrap select-none pb-20">
-                    請選取歌曲...
-                </div>
-            </div>
-        </main>
+    <div class="flex items-center gap-2 mb-6 overflow-x-auto no-scrollbar pb-2 border-b border-stone-900" id="tabs-container">
     </div>
 
-    <!-- Firebase 初始化與應用程式主邏輯 -->
-    <script>
-        // 1. Firebase 配置 (已自動帶入你的 Firebase 設定)
-        const firebaseConfig = {
-            apiKey: "AIzaSyD-YOUR_API_KEY", 
-            authDomain: "stagenote-eb8bf.firebaseapp.com",
-            databaseURL: "https://stagenote-eb8bf-default-rtdb.firebaseio.com",
-            projectId: "stagenote-eb8bf",
-            storageBucket: "stagenote-eb8bf.appspot.com",
-            messagingSenderId: "1234567890",
-            appId: "1:1234567890:web:abcdef"
-        };
+    <div class="flex flex-col md:flex-row gap-8 items-start relative">
+      <div class="w-full md:w-6/12 lg:w-7/12 flex flex-col gap-5">
+        <div class="bg-stone-900/60 border border-stone-800/80 rounded-2xl p-5 shadow-sm backdrop-blur-sm">
+          <div class="flex justify-between items-start mb-4 gap-3">
+            <div>
+              <h2 id="song-title" class="text-2xl font-serif-tc font-bold text-stone-100 tracking-wide">載入中...</h2>
+              <p id="song-artist" class="text-stone-500 text-sm mt-0.5">-</p>
+            </div>
+            <div class="flex items-center gap-2">
+              <button onclick="toggleSearchModal()" class="bg-stone-800/80 hover:bg-stone-700 text-stone-300 p-2.5 rounded-xl border border-stone-700/60 active:scale-95 transition flex items-center gap-1.5 text-xs font-medium">
+                <i data-lucide="search" class="w-3.5 h-3.5 text-amber-200/70"></i>
+                <span>檢索</span>
+              </button>
+              <select id="song-select" onchange="switchSong(this.value)" class="bg-stone-800/80 text-stone-300 text-xs border border-stone-700/60 rounded-xl p-2.5 focus:outline-none max-w-[180px] truncate">
+              </select>
+            </div>
+          </div>
+          <div class="flex flex-wrap gap-2 text-xs font-mono">
+            <span class="bg-stone-950 px-3 py-1 rounded-lg border border-stone-800 text-stone-400">原 Key: <b id="song-key" class="text-amber-300/90 font-normal">-</b></span>
+            <span class="bg-stone-950 px-3 py-1 rounded-lg border border-stone-800 text-stone-400">常用 Key: <b id="song-pref-key" class="text-emerald-300/90 font-normal">-</b></span>
+            <span class="bg-stone-950 px-3 py-1 rounded-lg border border-stone-800 text-stone-400">BPM: <b id="song-bpm" class="text-stone-300 font-normal">-</b></span>
+          </div>
+        </div>
 
-        // 安全初始化 Firebase
-        if (!firebase.apps.length) {
-            firebase.initializeApp(firebaseConfig);
-        }
-        const db = firebase.database();
-        const auth = firebase.auth();
+        <!-- 🎯 單層原生 Textarea：游標完全精準 -->
+        <div class="bg-stone-900/30 border border-stone-800/60 rounded-2xl p-6 shadow-inner relative focus-within:border-stone-700 transition">
+          <div class="text-[11px] text-stone-500 mb-3 font-serif-tc flex justify-between items-center tracking-widest">
+            <span>✎ 點擊下方隨心編輯歌詞 (支援 [C] 和弦與 *螢光筆* 標記)</span>
+          </div>
+          <textarea id="input-lyrics" oninput="handleEditorInput(this)" class="auto-expand-textarea w-full bg-transparent text-xl md:text-2xl text-stone-200 font-serif-tc leading-relaxed tracking-wide focus:outline-none placeholder-stone-700" placeholder="寫下你的歌詞..."></textarea>
+        </div>
+      </div>
 
-        // 全域變數
-        let songs = {};
-        let currentSongId = null;
-        let isLiveMode = false;
-        let currentUser = null;
-        let saveTimeout = null;
+      <div class="w-full md:w-6/12 lg:w-5/12 bg-stone-900/70 border border-stone-800 rounded-2xl p-6 flex flex-col gap-6 shadow-xl sticky top-6 h-fit z-30 shrink-0">
+        <!-- 頂部工具列標頭（右側放置「復原」按鈕） -->
+        <div class="flex justify-between items-center border-b border-stone-800/80 pb-3">
+          <h3 class="text-base font-serif-tc font-medium text-stone-200 flex items-center gap-2">
+            <i data-lucide="sliders" class="w-4 h-4 text-stone-400"></i>
+            作品細節與標記
+          </h3>
+          <div class="flex items-center gap-2">
+            <button 
+              onclick="undoAction()"
+              class="bg-stone-800 hover:bg-stone-700 text-stone-200 font-medium active:scale-95 text-[11px] px-2.5 py-1 rounded-full border border-stone-700 transition flex items-center gap-1 shadow-sm"
+              title="復原上一步"
+            >
+              ↩️ 復原
+            </button>
+            <span class="text-[10px] text-emerald-400/80 font-mono bg-emerald-950/40 px-2.5 py-0.5 rounded-full border border-emerald-900/60">即時同步</span>
+          </div>
+        </div>
 
-        // 2. Auth 狀態監聽 (自動將舊訪客歌詞搬移至用戶帳號)
-        auth.onAuthStateChanged((user) => {
-            currentUser = user;
-            const loginBtn = document.getElementById('login-btn');
-            const userInfo = document.getElementById('user-info');
-            const userAvatar = document.getElementById('user-avatar');
+        <div class="grid grid-cols-2 gap-3.5">
+          <div>
+            <label class="text-xs font-serif-tc text-stone-400 mb-1.5 block">歌名</label>
+            <input id="input-title" type="text" oninput="autoSaveField()" class="w-full bg-stone-950 border border-stone-800 rounded-xl px-3 py-2 text-sm text-stone-100 focus:outline-none focus:border-stone-600 transition">
+          </div>
+          <div>
+            <label class="text-xs font-serif-tc text-stone-400 mb-1.5 block">歌手</label>
+            <input id="input-artist" type="text" oninput="autoSaveField()" class="w-full bg-stone-950 border border-stone-800 rounded-xl px-3 py-2 text-sm text-stone-100 focus:outline-none focus:border-stone-600 transition">
+          </div>
+        </div>
 
-            if (user) {
-                // 已登入
-                loginBtn.classList.add('hidden');
-                userInfo.classList.remove('hidden');
-                userAvatar.src = user.photoURL || 'https://via.placeholder.com/150';
+        <div class="grid grid-cols-3 gap-2">
+          <div>
+            <label class="text-[11px] font-serif-tc text-stone-400 mb-1.5 block">原 Key</label>
+            <select id="input-key" onchange="autoSaveField()" class="w-full bg-stone-950 border border-stone-800 rounded-xl px-2 py-2 text-xs font-bold text-amber-300/90 focus:outline-none focus:border-stone-600 transition">
+            </select>
+          </div>
+          <div>
+            <label class="text-[11px] font-serif-tc text-stone-400 mb-1.5 block">常用 Key</label>
+            <select id="input-pref-key" onchange="autoSaveField()" class="w-full bg-stone-950 border border-stone-800 rounded-xl px-2 py-2 text-xs font-bold text-emerald-300/90 focus:outline-none focus:border-stone-600 transition">
+            </select>
+          </div>
+          <div>
+            <label class="text-[11px] font-serif-tc text-stone-400 mb-1.5 block">BPM</label>
+            <input id="input-bpm" type="number" inputmode="numeric" pattern="[0-9]*" placeholder="120" oninput="autoSaveField()" class="w-full bg-stone-950 border border-stone-800 rounded-xl px-2 py-2 text-xs font-bold text-stone-200 focus:outline-none focus:border-stone-600 transition">
+          </div>
+        </div>
 
-                // 自動搬移本地訪客歌詞 (Migration)
-                const localData = localStorage.getItem('stageNote_guest_songs');
-                if (localData) {
-                    try {
-                        const parsedLocal = JSON.parse(localData);
-                        if (Object.keys(parsedLocal).length > 0) {
-                            db.ref('users/' + user.uid + '/songs').update(parsedLocal).then(() => {
-                                localStorage.removeItem('stageNote_guest_songs');
-                                showToast('已成功將離線歌詞同步至個人雲端！');
-                            });
-                        }
-                    } catch(e) { console.error('Data migration error', e); }
-                }
+        <div>
+          <div class="flex justify-between items-center mb-2.5">
+            <label class="text-xs font-serif-tc text-amber-200/80 font-medium">🎸 快速插入和弦</label>
+            <span class="text-[10px] text-stone-600">（點擊插入游標處）</span>
+          </div>
+          <div id="chords-list-container" class="flex flex-wrap gap-1.5 max-h-40 overflow-y-auto p-2.5 bg-stone-950/80 rounded-xl border border-stone-800/80 mb-2.5">
+          </div>
+          <div class="flex gap-2">
+            <input id="custom-chord-input" type="text" placeholder="新增和弦 (如: Cadd9, D/F#)..." class="flex-1 bg-stone-950 border border-stone-800 rounded-xl px-3 py-1.5 text-xs text-stone-200 font-mono focus:outline-none focus:border-stone-600">
+            <button onclick="addCustomChord()" class="bg-stone-800 hover:bg-stone-700 text-stone-200 text-xs font-medium px-3.5 py-1.5 rounded-xl border border-stone-700 transition active:scale-95 shrink-0 flex items-center gap-1">
+              <i data-lucide="plus" class="w-3.5 h-3.5"></i> 加和弦
+            </button>
+          </div>
+        </div>
 
-                // 訂閱雲端資料庫更新
-                db.ref('users/' + user.uid + '/songs').on('value', (snapshot) => {
-                    songs = snapshot.val() || {};
-                    renderSongList();
-                    if (currentSongId && songs[currentSongId]) {
-                        loadSongToView(currentSongId);
-                    }
-                });
+        <div>
+          <div class="flex justify-between items-center mb-2.5">
+            <label class="text-xs font-serif-tc text-amber-200/80 font-medium">插入舞台註記與畫筆</label>
+            <span class="text-[10px] text-stone-600">（長按標籤即可移除）</span>
+          </div>
+          <div id="tags-list-container" class="flex flex-wrap gap-2 max-h-40 overflow-y-auto p-3 bg-stone-950/80 rounded-xl border border-stone-800/80 mb-3">
+          </div>
+          <div class="flex gap-2">
+            <input id="custom-tag-input" type="text" placeholder="輸入自訂標記 (如: 🎸 吉他獨奏)..." class="flex-1 bg-stone-950 border border-stone-800 rounded-xl px-3 py-2 text-xs text-stone-200 focus:outline-none focus:border-stone-600">
+            <button onclick="addCustomTag()" class="bg-stone-800 hover:bg-stone-700 text-stone-200 text-xs font-medium px-4 py-2 rounded-xl border border-stone-700 transition active:scale-95 shrink-0 flex items-center gap-1">
+              <i data-lucide="plus" class="w-3.5 h-3.5"></i> 新增
+            </button>
+          </div>
+        </div>
 
-            } else {
-                // 未登入 (訪客模式)
-                loginBtn.classList.remove('hidden');
-                userInfo.classList.add('hidden');
+        <button onclick="saveCurrentSong()" class="w-full bg-stone-200 hover:bg-white text-zinc-950 font-serif-tc font-bold text-sm py-3 rounded-xl transition active:scale-95 shadow-lg mt-1 tracking-wider">
+          保存作品至雲端
+        </button>
+      </div>
 
-                // 讀取本地快取
-                const localData = localStorage.getItem('stageNote_guest_songs');
-                songs = localData ? JSON.parse(localData) : {};
-                renderSongList();
-                if (currentSongId && songs[currentSongId]) {
-                    loadSongToView(currentSongId);
-                }
+    </div>
+  </div>
+
+  <!-- 🎤 演出模式 (Live Mode) -->
+  <div id="live-view" class="fixed inset-0 bg-black z-50 hidden flex flex-col h-screen w-screen overflow-hidden">
+    
+    <div class="bg-zinc-950/95 backdrop-blur-2xl border-b border-zinc-800/80 p-3 md:p-6 space-y-2.5 shadow-2xl shrink-0 z-50">
+      
+      <div class="flex flex-col md:flex-row md:items-center justify-between gap-2">
+        <div class="flex items-center gap-2 min-w-0">
+          <span class="shrink-0 bg-rose-900/80 text-rose-200 border border-rose-700/50 text-[10px] font-mono px-2 py-0.5 rounded-full tracking-widest">LIVE</span>
+          <h2 id="live-title" class="text-2xl md:text-4xl font-serif-tc font-black text-stone-100 truncate tracking-wide">歌曲名稱</h2>
+        </div>
+        
+        <div class="flex items-center justify-between md:justify-end gap-2 shrink-0">
+          <div class="flex items-center gap-2 font-mono bg-stone-900 px-3 py-1 rounded-xl border border-stone-800 text-xs">
+            <span id="live-clock" class="text-stone-300 font-bold">00:00:00</span>
+          </div>
+
+          <span id="live-info" class="text-xs md:text-lg font-mono font-medium text-stone-200 bg-stone-900 px-3 py-1 rounded-xl border border-stone-800 tracking-wide">
+            原: - | 常用: -
+          </span>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-1 overflow-x-auto no-scrollbar pb-1 border-b border-zinc-800/60" id="live-tabs-container">
+      </div>
+
+      <!-- 響應式工具列 -->
+      <div class="flex flex-wrap md:flex-nowrap items-center justify-between gap-2 pt-1 shrink-0">
+        
+        <div class="flex items-center gap-2 w-full md:w-auto justify-between md:justify-start shrink-0">
+          <!-- 滾動速度控制 -->
+          <div class="flex items-center gap-1.5 bg-stone-900 px-3 py-1.5 rounded-xl border border-stone-800 text-xs text-stone-300 flex-1 md:flex-none justify-center">
+            <span class="text-stone-500 font-serif-tc text-xs">速度</span>
+            <button onclick="adjustSpeed(-1)" class="w-6 h-6 bg-stone-800 hover:bg-stone-700 active:scale-90 rounded flex items-center justify-center font-bold text-stone-200">-</button>
+            <span id="speed-label" class="w-4 text-center font-mono font-bold text-amber-200/90 text-xs">5</span>
+            <button onclick="adjustSpeed(1)" class="w-6 h-6 bg-stone-800 hover:bg-stone-700 active:scale-90 rounded flex items-center justify-center font-bold text-stone-200">+</button>
+          </div>
+
+          <!-- 移調面板 -->
+          <div class="flex items-center gap-1.5 bg-stone-900 px-3 py-1.5 rounded-xl border border-stone-800 text-xs font-mono flex-1 md:flex-none justify-center">
+            <span class="text-stone-500 text-xs font-sans">移調</span>
+            <button onclick="transposeKey(-1)" class="w-6 h-6 bg-stone-800 hover:bg-stone-700 text-stone-200 rounded flex items-center justify-center font-bold active:scale-90">-</button>
+            <span id="transpose-offset-label" class="w-8 text-center text-amber-300 font-bold text-xs">原Key</span>
+            <button onclick="transposeKey(1)" class="w-6 h-6 bg-stone-800 hover:bg-stone-700 text-stone-200 rounded flex items-center justify-center font-bold active:scale-90">+</button>
+            <button onclick="resetTranspose()" class="text-[10px] text-stone-500 hover:text-stone-300 ml-0.5 underline">重置</button>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-1.5 w-full md:w-auto justify-between md:justify-end shrink-0">
+          <button id="fullscreen-btn" onclick="toggleFullscreen()" class="flex-1 md:flex-none bg-stone-900 hover:bg-stone-800 active:scale-95 text-stone-300 px-2.5 py-1.5 rounded-xl text-xs font-medium border border-stone-800 transition flex items-center justify-center gap-1">
+            <i data-lucide="maximize" class="w-3.5 h-3.5 text-amber-200/80"></i>
+            <span id="fullscreen-btn-text">全螢幕</span>
+          </button>
+          
+          <button onclick="toggleChords()" class="flex-1 md:flex-none bg-stone-900 hover:bg-stone-800 active:scale-95 text-stone-300 px-2.5 py-1.5 rounded-xl text-xs font-medium border border-stone-800 transition">
+            <span id="live-chord-toggle-text">和弦: 顯</span>
+          </button>
+          <button onclick="toggleTags()" class="flex-1 md:flex-none bg-stone-900 hover:bg-stone-800 active:scale-95 text-stone-300 px-2.5 py-1.5 rounded-xl text-xs font-medium border border-stone-800 transition">
+            <span id="live-tag-toggle-text">標記: 顯</span>
+          </button>
+          <button id="live-scroll-btn" onclick="toggleLiveScroll()" class="flex-1 md:flex-none bg-stone-200 hover:bg-white active:scale-95 text-zinc-950 px-3.5 py-1.5 rounded-xl text-xs font-serif-tc font-bold transition shadow-md whitespace-nowrap">
+            開始滾動
+          </button>
+          <button onclick="exitLiveMode()" class="flex-1 md:flex-none bg-stone-900 hover:bg-stone-800 active:scale-95 text-stone-400 px-2.5 py-1.5 rounded-xl text-xs font-medium border border-stone-800 transition">
+            退出
+          </button>
+        </div>
+
+      </div>
+
+    </div>
+
+    <div id="live-scroll-area" class="flex-1 overflow-y-auto px-4 md:px-12 pt-6 pb-60">
+      <div id="live-lyrics-container" class="space-y-6 text-2xl md:text-4xl font-serif-tc font-semibold tracking-wider text-stone-100 leading-relaxed">
+      </div>
+    </div>
+  </div>
+
+  <!-- 🔍 檢索視窗 Modal -->
+  <div id="search-modal" class="fixed inset-0 bg-black/80 backdrop-blur-md z-[10000] hidden flex items-start justify-center p-4 pt-20">
+    <div class="bg-stone-900 border border-stone-800 rounded-2xl w-full max-w-md p-5 flex flex-col gap-4 shadow-2xl">
+      <div class="flex justify-between items-center border-b border-stone-800 pb-3">
+        <div class="flex items-center gap-2 text-stone-300 font-serif-tc">
+          <i data-lucide="search" class="w-4 h-4 text-amber-200/80"></i>
+          <h3 class="text-sm font-semibold tracking-wider">曲目檢索</h3>
+        </div>
+        <button onclick="toggleSearchModal()" class="text-stone-500 hover:text-stone-200 p-1"><i data-lucide="x" class="w-4 h-4"></i></button>
+      </div>
+
+      <div class="relative">
+        <input id="search-input" type="text" oninput="filterSongs()" placeholder="搜尋歌名或歌手..." class="w-full bg-stone-950 border border-stone-800 rounded-xl px-3.5 py-2.5 text-xs text-stone-200 focus:outline-none focus:border-stone-600">
+      </div>
+
+      <div id="search-results" class="max-h-64 overflow-y-auto divide-y divide-stone-800/60 rounded-xl bg-stone-950 border border-stone-800/80 p-1">
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let lastTouchEnd = 0;
+    document.addEventListener('touchend', function (event) {
+      const now = (new Date()).getTime();
+      if (now - lastTouchEnd <= 300) {
+        event.preventDefault();
+      }
+      lastTouchEnd = now;
+    }, false);
+
+    let songs = [];
+    let tabs = [0];
+    let activeTabIndex = 0;
+    
+    let isScrolling = false;
+    let scrollTimer = null;
+    let speedLevel = 5;
+    let showChords = true;
+    let showTags = true;
+    let isCustomFullscreen = false;
+
+    let transposeOffset = 0;
+    let toastTimer = null;
+    let undoHistory = [];
+
+    let customChords = [
+      'C', 'D', 'E', 'F', 'G', 'A', 'B',
+      'Cm', 'Dm', 'Em', 'Fm', 'Gm', 'Am', 'Bm',
+      'C7', 'D7', 'E7', 'G7', 'A7', 'FM7', 'C/E', 'G/B', '♯', '♭'
+    ];
+
+    let customTags = [
+      '🫁 換氣', '🎤 Mic拉遠', '🎤 Mic靠近', '🔥 情緒', '❤️ 微笑', 
+      '👀 看觀眾', '🤝 互動', '🎸 吉他Solo', '🥁 鼓Fill', '⬆️ 升Key', 
+      '⬇️ 降Key', '⭐ 重點', '⚠️ 小心高音', '😌 放輕鬆'
+    ];
+
+    const allKeys = [
+      "-",
+      "C", "C# / Db", "D", "D# / Eb", "E", "F", "F# / Gb", "G", "G# / Ab", "A", "A# / Bb", "B",
+      "Am", "A#m / Bbm", "Bm", "Cm", "C#m", "Dm", "D#m / Ebm", "Em", "Fm", "F#m", "Gm", "G#m"
+    ];
+
+    function getUserDbRef(path) {
+      if (!currentUser) return null;
+      return db.ref(`users/${currentUser.uid}/${path}`);
+    }
+
+    function showToast(msg = "已保存！") {
+      const toast = document.getElementById('toast-message');
+      const toastText = document.getElementById('toast-text');
+      if (!toast || !toastText) return;
+
+      toastText.innerText = msg;
+      toast.classList.remove('opacity-0', 'pointer-events-none', 'translate-y-[-10px]');
+      toast.classList.add('opacity-100', 'translate-y-0');
+
+      if (toastTimer) clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => {
+        toast.classList.remove('opacity-100', 'translate-y-0');
+        toast.classList.add('opacity-0', 'pointer-events-none', 'translate-y-[-10px]');
+      }, 1500);
+    }
+
+    function loadLocalCache() {
+      try {
+        const localSongs = localStorage.getItem(`stagenote_songs_${currentUser ? currentUser.uid : 'guest'}`);
+        if (localSongs) songs = JSON.parse(localSongs);
+
+        const localChords = localStorage.getItem(`stagenote_chords_${currentUser ? currentUser.uid : 'guest'}`);
+        if (localChords) customChords = JSON.parse(localChords);
+
+        const localTags = localStorage.getItem(`stagenote_tags_${currentUser ? currentUser.uid : 'guest'}`);
+        if (localTags) customTags = JSON.parse(localTags);
+      } catch (e) {
+        console.error("讀取本地快取失敗", e);
+      }
+    }
+
+    function saveLocalCache() {
+      try {
+        const uid = currentUser ? currentUser.uid : 'guest';
+        localStorage.setItem(`stagenote_songs_${uid}`, JSON.stringify(songs));
+        localStorage.setItem(`stagenote_chords_${uid}`, JSON.stringify(customChords));
+        localStorage.setItem(`stagenote_tags_${uid}`, JSON.stringify(customTags));
+      } catch (e) {
+        console.error("保存本地快取失敗", e);
+      }
+    }
+
+    const chromaticScale = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+    const flatScale = ['C', 'Db', 'D', 'Eb', 'E', 'F', 'Gb', 'G', 'Ab', 'A', 'Bb', 'B'];
+
+    function transposeChordToken(chordStr, semitones) {
+      if (semitones === 0 || !chordStr) return chordStr;
+      
+      return chordStr.replace(/([A-G][b#]?)/g, (match) => {
+        let index = chromaticScale.indexOf(match);
+        if (index === -1) index = flatScale.indexOf(match);
+        if (index === -1) return match;
+
+        let newIndex = (index + semitones) % 12;
+        if (newIndex < 0) newIndex += 12;
+        return chromaticScale[newIndex];
+      });
+    }
+
+    function transposeKey(delta) {
+      transposeOffset += delta;
+      updateTransposeUI();
+      const currentSongIndex = tabs[activeTabIndex];
+      if (currentSongIndex !== 'new' && songs[currentSongIndex]) {
+        renderSong(songs[currentSongIndex]);
+      }
+    }
+
+    function resetTranspose() {
+      transposeOffset = 0;
+      updateTransposeUI();
+      const currentSongIndex = tabs[activeTabIndex];
+      if (currentSongIndex !== 'new' && songs[currentSongIndex]) {
+        renderSong(songs[currentSongIndex]);
+      }
+    }
+
+    function updateTransposeUI() {
+      const label = document.getElementById('transpose-offset-label');
+      if (label) {
+        if (transposeOffset === 0) label.innerText = '原Key';
+        else if (transposeOffset > 0) label.innerText = `+${transposeOffset}`;
+        else label.innerText = `${transposeOffset}`;
+      }
+    }
+
+    function initLiveClock() {
+      setInterval(() => {
+        const now = new Date();
+        const timeStr = now.toTimeString().split(' ')[0];
+        const clockEl = document.getElementById('live-clock');
+        if (clockEl) clockEl.innerText = timeStr;
+      }, 1000);
+    }
+
+    function getScrollInterval() {
+      return Math.max(10, 90 - (speedLevel * 8));
+    }
+
+    function performLiveScroll() {
+      const liveScrollArea = document.getElementById('live-scroll-area');
+      if (liveScrollArea) {
+        liveScrollArea.scrollTop += 1;
+      }
+    }
+
+    function adjustTextareaHeight(el) {
+      const currentScroll = window.scrollY || document.documentElement.scrollTop;
+      el.style.height = 'auto';
+      el.style.height = el.scrollHeight + 'px';
+      window.scrollTo(0, currentScroll);
+    }
+
+    function pushUndoState() {
+      const textarea = document.getElementById('input-lyrics');
+      if (!textarea) return;
+      if (undoHistory.length === 0 || undoHistory[undoHistory.length - 1] !== textarea.value) {
+        undoHistory.push(textarea.value);
+        if (undoHistory.length > 20) undoHistory.shift();
+      }
+    }
+
+    function undoAction() {
+      if (undoHistory.length === 0) {
+        showToast("沒有上一步了！");
+        return;
+      }
+      const textarea = document.getElementById('input-lyrics');
+      const lastState = undoHistory.pop();
+      textarea.value = lastState;
+      adjustTextareaHeight(textarea);
+      autoSaveLyrics();
+      showToast("已復原上一步");
+    }
+
+    function handleEditorInput(el) {
+      autoSaveLyrics();
+      adjustTextareaHeight(el);
+    }
+
+    function hideLoadingSplash() {
+      const splash = document.getElementById('loading-splash');
+      if (splash) {
+        splash.classList.add('opacity-0');
+        setTimeout(() => {
+          splash.classList.add('hidden');
+        }, 700);
+      }
+    }
+
+    function toggleFullscreen() {
+      const liveView = document.getElementById('live-view');
+      isCustomFullscreen = !isCustomFullscreen;
+
+      if (isCustomFullscreen) {
+        liveView.classList.add('immersive-fullscreen');
+        document.getElementById('fullscreen-btn-text').innerText = '取消全螢幕';
+        
+        const docEl = document.documentElement;
+        const req = docEl.requestFullscreen || docEl.webkitRequestFullScreen;
+        if (req) req.call(docEl).catch(() => {});
+      } else {
+        liveView.classList.remove('immersive-fullscreen');
+        document.getElementById('fullscreen-btn-text').innerText = '全螢幕';
+        
+        const exit = document.exitFullscreen || document.webkitExitFullscreen;
+        if (exit) exit.call(document).catch(() => {});
+      }
+    }
+
+    // 🚀 初始化與會員資料自動搬移邏輯
+    window.onload = () => {
+      lucide.createIcons();
+      initKeySelectOptions();
+      initLiveClock();
+
+      auth.onAuthStateChanged((user) => {
+        if (user) {
+          currentUser = user;
+          document.getElementById('login-overlay').classList.add('hidden');
+          
+          // 顯示個人頭像與名稱
+          const profileBar = document.getElementById('user-profile-bar');
+          if (profileBar) {
+            profileBar.classList.remove('hidden');
+            document.getElementById('user-avatar').src = user.photoURL || '';
+            document.getElementById('user-name').innerText = user.displayName || '用戶';
+          }
+
+          loadLocalCache();
+          renderChordsList();
+          renderTagsList();
+
+          // 📦 資料搬移檢查：如果是第一個登入的帳號，將根目錄的舊歌單移入該帳號
+          db.ref('songs').once('value').then((snapshot) => {
+            const rootSongs = snapshot.val();
+            if (rootSongs) {
+              // 搬移歌曲、和弦、標籤到當前帳號
+              getUserDbRef('songs').set(rootSongs);
+              db.ref('custom_chords').once('value').then((snap) => {
+                if (snap.val()) getUserDbRef('custom_chords').set(snap.val());
+                db.ref('custom_chords').remove();
+              });
+              db.ref('custom_tags').once('value').then((snap) => {
+                if (snap.val()) getUserDbRef('custom_tags').set(snap.val());
+                db.ref('custom_tags').remove();
+              });
+
+              // 刪除根目錄的舊全域資料，完成轉移
+              db.ref('songs').remove();
+              showToast("已自動將原有歌單轉移至您的帳號！");
             }
+          });
+
+          // 綁定個人的 Firebase 數據監聽
+          bindUserFirebaseData();
+
+        } else {
+          // 未登入，彈出登入 Overlay
+          currentUser = null;
+          document.getElementById('login-overlay').classList.remove('hidden');
+          hideLoadingSplash();
+        }
+      });
+    };
+
+    function bindUserFirebaseData() {
+      const connectedRef = db.ref(".info/connected");
+      connectedRef.on("value", (snap) => {
+        const syncEl = document.getElementById('sync-status');
+        if (snap.val() === true) {
+          if (syncEl) {
+            syncEl.innerText = '雲端同步完成';
+            syncEl.className = 'text-[11px] bg-emerald-950/60 text-emerald-400 px-3 py-0.5 rounded-full border border-emerald-900/60 font-mono';
+          }
+        } else {
+          if (syncEl) {
+            syncEl.innerText = '離線模式 (本地快取)';
+            syncEl.className = 'text-[11px] bg-amber-950/60 text-amber-400 px-3 py-0.5 rounded-full border border-amber-900/60 font-mono';
+          }
+          updateSongSelectOptions();
+          renderTabs();
+          renderCurrentTabSong();
+          hideLoadingSplash();
+        }
+      });
+
+      getUserDbRef('custom_chords').on('value', (snapshot) => {
+        const data = snapshot.val();
+        if (data) {
+          customChords = Array.isArray(data) ? data : Object.values(data);
+          saveLocalCache();
+        }
+        renderChordsList();
+      });
+
+      getUserDbRef('custom_tags').on('value', (snapshot) => {
+        const data = snapshot.val();
+        if (data) {
+          customTags = Array.isArray(data) ? data : Object.values(data);
+          saveLocalCache();
+        }
+        renderTagsList();
+      });
+
+      getUserDbRef('songs').on('value', (snapshot) => {
+        const data = snapshot.val();
+        if (data) {
+          songs = Array.isArray(data) ? data : Object.values(data);
+          saveLocalCache();
+        } else if (songs.length === 0) {
+          songs = [{
+            id: "song-1",
+            title: "愛人錯過",
+            artist: "告五人",
+            key: "C",
+            prefKey: "C",
+            bpm: "120",
+            viewCount: 1,
+            lyrics: `作詞：潘雲安  作曲：潘雲安\n\n[C]我肯定在幾百年前就說過愛你\n\n[G]只是你忘了\n\n[Am]我也沒想起\n\n⭐ 重點\n\n[F]我肯定在幾百年前就說過愛你`
+          }];
+          getUserDbRef('songs').set(songs);
+          saveLocalCache();
+        }
+        
+        updateSongSelectOptions();
+        renderTabs();
+        renderCurrentTabSong();
+        hideLoadingSplash();
+      });
+    }
+
+    function updateSongSelectOptions() {
+      const select = document.getElementById('song-select');
+      const sortedSongsWithIndex = songs.map((s, idx) => ({ ...s, originalIndex: idx }))
+        .sort((a, b) => (b.viewCount || 0) - (a.viewCount || 0));
+
+      const optionsHtml = sortedSongsWithIndex.map((s) => {
+        const bpmStr = s.bpm ? `${s.bpm} ` : '';
+        const origKeyStr = s.key && s.key !== '-' ? `原:${s.key}` : '';
+        const prefKeyStr = s.prefKey && s.prefKey !== '-' ? `樂:${s.prefKey}` : '';
+        
+        let keyInfo = [origKeyStr, prefKeyStr].filter(Boolean).join(' ');
+        if (keyInfo) keyInfo = ` (${keyInfo})`;
+
+        return `<option value="${s.originalIndex}">${bpmStr}${s.title}${keyInfo}</option>`;
+      }).join('') + '<option value="new">+ 新增歌曲</option>';
+
+      if (select) select.innerHTML = optionsHtml;
+    }
+
+    function incrementSongViewCount(index) {
+      if (songs[index]) {
+        songs[index].viewCount = (songs[index].viewCount || 0) + 1;
+        saveLocalCache();
+        if (navigator.onLine && currentUser) {
+          getUserDbRef(`songs/${index}/viewCount`).set(songs[index].viewCount);
+        }
+      }
+    }
+
+    function renderChordsList() {
+      const container = document.getElementById('chords-list-container');
+      container.innerHTML = customChords.map((chord, idx) => `
+        <button 
+          id="chord-btn-${idx}"
+          onclick="handleChordClick('${chord}', ${idx})"
+          oncontextmenu="handleChordContextMenu(event, '${chord}', ${idx})"
+          ontouchstart="handleChordTouchStart('${chord}', ${idx})"
+          ontouchend="handleChordTouchEnd()"
+          ontouchmove="handleChordTouchEnd()"
+          class="bg-stone-900 hover:bg-amber-950/40 text-amber-200/90 hover:text-amber-200 active:scale-95 text-xs font-mono font-bold px-2.5 py-1 rounded-md border border-stone-800/80 transition"
+        >
+          ${chord}
+        </button>
+      `).join('');
+    }
+
+    let chordLongPressTimer = null;
+    let isChordLongPressTriggered = false;
+
+    function handleChordTouchStart(chord, index) {
+      isChordLongPressTriggered = false;
+      chordLongPressTimer = setTimeout(() => {
+        isChordLongPressTriggered = true;
+        confirmDeleteCustomChord(chord, index);
+      }, 500);
+    }
+
+    function handleChordTouchEnd() {
+      if (chordLongPressTimer) {
+        clearTimeout(chordLongPressTimer);
+        chordLongPressTimer = null;
+      }
+    }
+
+    function handleChordClick(chord, index) {
+      if (isChordLongPressTriggered) {
+        isChordLongPressTriggered = false;
+        return;
+      }
+      insertChord(chord);
+    }
+
+    function handleChordContextMenu(e, chord, index) {
+      e.preventDefault();
+      confirmDeleteCustomChord(chord, index);
+    }
+
+    function confirmDeleteCustomChord(chord, index) {
+      if (confirm(`確定要移除快捷和弦 『${chord}』 嗎？`)) {
+        customChords.splice(index, 1);
+        saveLocalCache();
+        if (currentUser) getUserDbRef('custom_chords').set(customChords);
+      }
+    }
+
+    function addCustomChord() {
+      const input = document.getElementById('custom-chord-input');
+      const newChord = input.value.trim();
+      if (!newChord) return;
+
+      if (!customChords.includes(newChord)) {
+        customChords.push(newChord);
+        saveLocalCache();
+        if (currentUser) getUserDbRef('custom_chords').set(customChords);
+      }
+      input.value = '';
+    }
+
+    function insertChord(chordText) {
+      pushUndoState();
+      const textarea = document.getElementById('input-lyrics');
+      const currentWindowScroll = window.scrollY || document.documentElement.scrollTop;
+      const start = textarea.selectionStart;
+      const end = textarea.selectionEnd;
+      const text = textarea.value;
+      
+      const insertContent = `[${chordText}]`;
+      textarea.value = text.substring(0, start) + insertContent + text.substring(end);
+      
+      textarea.focus({ preventScroll: true });
+      textarea.selectionStart = textarea.selectionEnd = start + insertContent.length;
+      
+      handleEditorInput(textarea);
+      window.scrollTo(0, currentWindowScroll);
+    }
+
+    function renderTagsList() {
+      const container = document.getElementById('tags-list-container');
+      
+      const toolbarBtns = `
+        <button 
+          onclick="applyHighlight()"
+          class="bg-amber-950/60 hover:bg-amber-900 text-amber-300 font-bold active:scale-95 text-xs px-3 py-1.5 rounded-lg border border-amber-700/60 transition flex items-center gap-1 shadow-sm"
+        >
+          🖍️ 螢光筆
+        </button>
+      `;
+
+      const tagsHTML = customTags.map((tag, idx) => `
+        <button 
+          id="tag-btn-${idx}"
+          onclick="handleTagClick('${tag}', ${idx})"
+          oncontextmenu="handleTagContextMenu(event, '${tag}', ${idx})"
+          ontouchstart="handleTagTouchStart('${tag}', ${idx})"
+          ontouchend="handleTagTouchEnd()"
+          ontouchmove="handleTagTouchEnd()"
+          class="bg-stone-900 hover:bg-stone-800 active:scale-95 text-xs font-medium px-3 py-1.5 rounded-lg text-emerald-300/90 border border-stone-800 transition"
+        >
+          ${tag}
+        </button>
+      `).join('');
+
+      container.innerHTML = toolbarBtns + tagsHTML;
+    }
+
+    function applyHighlight() {
+      const textarea = document.getElementById('input-lyrics');
+      const currentWindowScroll = window.scrollY || document.documentElement.scrollTop;
+      const start = textarea.selectionStart;
+      const end = textarea.selectionEnd;
+      const text = textarea.value;
+
+      if (start === end) {
+        showToast("請先框選想要高亮的文字！");
+        return;
+      }
+
+      pushUndoState();
+
+      const selectedText = text.substring(start, end);
+      const cleanText = selectedText.replace(/<\/?mark>/g, '');
+      const insertContent = `*${cleanText}*`;
+      
+      textarea.value = text.substring(0, start) + insertContent + text.substring(end);
+      
+      textarea.focus({ preventScroll: true });
+      textarea.selectionStart = start;
+      textarea.selectionEnd = start + insertContent.length;
+      
+      handleEditorInput(textarea);
+      window.scrollTo(0, currentWindowScroll);
+    }
+
+    let longPressTimer = null;
+    let isLongPressTriggered = false;
+
+    function handleTagTouchStart(tag, index) {
+      isLongPressTriggered = false;
+      longPressTimer = setTimeout(() => {
+        isLongPressTriggered = true;
+        confirmDeleteCustomTag(tag, index);
+      }, 500);
+    }
+
+    function handleTagTouchEnd() {
+      if (longPressTimer) {
+        clearTimeout(longPressTimer);
+        longPressTimer = null;
+      }
+    }
+
+    function handleTagClick(tag, index) {
+      if (isLongPressTriggered) {
+        isLongPressTriggered = false;
+        return;
+      }
+      insertTag(tag);
+    }
+
+    function handleTagContextMenu(e, tag, index) {
+      e.preventDefault();
+      confirmDeleteCustomTag(tag, index);
+    }
+
+    function confirmDeleteCustomTag(tag, index) {
+      if (confirm(`確定要移除標記 『${tag}』 嗎？`)) {
+        customTags.splice(index, 1);
+        saveLocalCache();
+        if (currentUser) getUserDbRef('custom_tags').set(customTags);
+      }
+    }
+
+    function addCustomTag() {
+      const input = document.getElementById('custom-tag-input');
+      const newTag = input.value.trim();
+      if (!newTag) return;
+
+      if (!customTags.includes(newTag)) {
+        customTags.push(newTag);
+        saveLocalCache();
+        if (currentUser) getUserDbRef('custom_tags').set(customTags);
+      }
+      input.value = '';
+    }
+
+    function initKeySelectOptions() {
+      const keySelect = document.getElementById('input-key');
+      const prefKeySelect = document.getElementById('input-pref-key');
+      const optionsHtml = allKeys.map(k => `<option value="${k}">${k}</option>`).join('');
+      
+      if (keySelect) keySelect.innerHTML = optionsHtml;
+      if (prefKeySelect) prefKeySelect.innerHTML = optionsHtml;
+    }
+
+    function autoSaveLyrics() {
+      const currentSongIndex = tabs[activeTabIndex];
+      if (currentSongIndex === 'new' || !songs[currentSongIndex]) return;
+
+      const textareaVal = document.getElementById('input-lyrics').value;
+      if (showChords) {
+        songs[currentSongIndex].lyrics = textareaVal;
+        saveLocalCache();
+      }
+    }
+
+    function autoSaveField() {
+      const title = document.getElementById('input-title').value;
+      const artist = document.getElementById('input-artist').value;
+      const key = document.getElementById('input-key').value;
+      const prefKey = document.getElementById('input-pref-key').value;
+      const bpm = document.getElementById('input-bpm').value;
+
+      document.getElementById('song-title').innerText = title || '新歌曲';
+      document.getElementById('song-artist').innerText = artist || '-';
+      document.getElementById('song-key').innerText = key;
+      document.getElementById('song-pref-key').innerText = prefKey;
+      document.getElementById('song-bpm').innerText = bpm || '-';
+
+      const currentSongIndex = tabs[activeTabIndex];
+      if (currentSongIndex !== 'new' && songs[currentSongIndex]) {
+        songs[currentSongIndex].title = title;
+        songs[currentSongIndex].artist = artist;
+        songs[currentSongIndex].key = key;
+        songs[currentSongIndex].prefKey = prefKey;
+        songs[currentSongIndex].bpm = bpm;
+        saveLocalCache();
+      }
+    }
+
+    function renderTabs() {
+      const container = document.getElementById('tabs-container');
+      const liveContainer = document.getElementById('live-tabs-container');
+
+      const tabsHTML = tabs.map((songIndex, tIdx) => {
+        let title = '新歌曲';
+        if (songIndex !== 'new' && songs[songIndex]) {
+          title = songs[songIndex].title;
+        }
+        
+        const isActive = tIdx === activeTabIndex;
+        const activeClass = isActive 
+          ? 'bg-stone-200 text-zinc-950 font-serif-tc font-bold border-stone-200 shadow-md' 
+          : 'bg-stone-900/80 text-stone-400 hover:bg-stone-800 border-stone-800';
+
+        return `
+          <div onclick="switchTab(${tIdx})" class="flex items-center gap-2 px-3.5 py-1.5 rounded-full border text-xs cursor-pointer shrink-0 transition ${activeClass}">
+            <span class="max-w-[100px] truncate">${title}</span>
+            ${tabs.length > 1 ? `<button onclick="event.stopPropagation(); closeTab(${tIdx})" class="hover:text-rose-400 p-0.5 rounded transition"><i data-lucide="x" class="w-3.5 h-3.5"></i></button>` : ''}
+          </div>
+        `;
+      }).join('') + `
+        <button onclick="addNewTab()" class="bg-stone-900 hover:bg-stone-800 text-amber-200/80 p-1.5 rounded-full border border-stone-800 shrink-0 flex items-center justify-center transition active:scale-95">
+          <i data-lucide="plus" class="w-4 h-4"></i>
+        </button>
+      `;
+
+      if (container) container.innerHTML = tabsHTML;
+      if (liveContainer) liveContainer.innerHTML = tabsHTML;
+      lucide.createIcons();
+    }
+
+    function switchTab(tIdx) {
+      if (isScrolling) toggleLiveScroll();
+      resetTranspose();
+      undoHistory = [];
+      activeTabIndex = tIdx;
+      renderTabs();
+      renderCurrentTabSong();
+    }
+
+    function addNewTab() {
+      tabs.push(0);
+      activeTabIndex = tabs.length - 1;
+      renderTabs();
+      renderCurrentTabSong();
+      toggleSearchModal();
+    }
+
+    function createNewSongWithNewTab() {
+      tabs.push('new');
+      activeTabIndex = tabs.length - 1;
+      renderTabs();
+      openNewSongForm();
+    }
+
+    function closeTab(tIdx) {
+      if (tabs.length <= 1) return;
+      tabs.splice(tIdx, 1);
+      if (activeTabIndex >= tabs.length) {
+        activeTabIndex = tabs.length - 1;
+      }
+      renderTabs();
+      renderCurrentTabSong();
+    }
+
+    function renderCurrentTabSong() {
+      const currentSongIndex = tabs[activeTabIndex];
+      if (currentSongIndex === 'new') {
+        openNewSongForm();
+      } else if (songs[currentSongIndex]) {
+        renderSong(songs[currentSongIndex]);
+        const select = document.getElementById('song-select');
+        if (select) select.value = currentSongIndex;
+        populateRightSidebarForm(songs[currentSongIndex]);
+      }
+    }
+
+    function populateRightSidebarForm(song) {
+      const tInput = document.getElementById('input-title');
+      if (!tInput) return;
+      
+      tInput.value = song.title || '';
+      document.getElementById('input-artist').value = song.artist || '';
+      document.getElementById('input-key').value = song.key || '-';
+      document.getElementById('input-pref-key').value = song.prefKey || '-';
+      document.getElementById('input-bpm').value = song.bpm || '';
+      
+      const lyricsInput = document.getElementById('input-lyrics');
+      let rawLyrics = song.lyrics || '';
+      lyricsInput.value = showChords ? rawLyrics : rawLyrics.replace(/\[.*?\]/g, '');
+      handleEditorInput(lyricsInput);
+    }
+
+    function toggleSearchModal() {
+      const modal = document.getElementById('search-modal');
+      modal.classList.toggle('hidden');
+      if (!modal.classList.contains('hidden')) {
+        const input = document.getElementById('search-input');
+        input.value = '';
+        input.focus();
+        filterSongs();
+      }
+    }
+
+    function filterSongs() {
+      const query = document.getElementById('search-input').value.toLowerCase().trim();
+      const resultsContainer = document.getElementById('search-results');
+      
+      const filtered = songs.map((song, index) => ({ song, index }))
+        .sort((a, b) => (b.song ? (b.song.viewCount || 0) : 0) - (a.song ? (a.song.viewCount || 0) : 0))
+        .filter(item => {
+          const title = (item.song.title || '').toLowerCase();
+          const artist = (item.song.artist || '').toLowerCase();
+          return title.includes(query) || artist.includes(query);
         });
 
-        // 3. Google 登入 / 登出
-        function loginGoogle() {
-            const provider = new firebase.auth.GoogleAuthProvider();
-            auth.signInWithPopup(provider).catch((error) => {
-                alert('登入失敗：' + error.message);
-            });
+      if (filtered.length === 0) {
+        resultsContainer.innerHTML = `<div class="p-4 text-center text-xs text-stone-600 font-serif-tc">未尋獲相關歌曲</div>`;
+        return;
+      }
+
+      resultsContainer.innerHTML = filtered.map(item => `
+        <div onclick="selectSearchResult(${item.index})" class="p-3 hover:bg-stone-900/90 active:bg-stone-800 cursor-pointer flex justify-between items-center transition">
+          <div class="flex items-center gap-2.5">
+            ${item.song.bpm ? `<span class="text-[10px] font-mono text-stone-400 bg-stone-900 border border-stone-800 px-2 py-0.5 rounded-md">${item.song.bpm}</span>` : ''}
+            <div>
+              <div class="text-sm font-serif-tc font-semibold text-stone-200">${item.song.title}</div>
+              <div class="text-xs text-stone-500">${item.song.artist || '-'}</div>
+            </div>
+          </div>
+          <div class="flex items-center gap-1.5 text-xs font-mono">
+            ${item.song.key && item.song.key !== '-' ? `<span class="bg-stone-900 text-amber-300/90 px-2 py-0.5 rounded border border-stone-800">原:${item.song.key}</span>` : ''}
+            ${item.song.prefKey && item.song.prefKey !== '-' ? `<span class="bg-stone-900 text-emerald-300/90 px-2 py-0.5 rounded border border-stone-800">樂:${item.song.prefKey}</span>` : ''}
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function selectSearchResult(index) {
+      incrementSongViewCount(index);
+      tabs[activeTabIndex] = index;
+      renderTabs();
+      renderSong(songs[index]);
+      const select = document.getElementById('song-select');
+      if (select) select.value = index;
+      populateRightSidebarForm(songs[index]);
+      toggleSearchModal();
+    }
+
+    function toggleChords() {
+      showChords = !showChords;
+      document.body.classList.toggle('hide-chords', !showChords);
+
+      const normalText = document.getElementById('chord-toggle-text');
+      const liveText = document.getElementById('live-chord-toggle-text');
+
+      const label = showChords ? '和弦: 顯' : '和弦: 隱';
+      if (normalText) normalText.innerText = label;
+      if (liveText) liveText.innerText = label;
+
+      const currentSongIndex = tabs[activeTabIndex];
+      if (currentSongIndex !== 'new' && songs[currentSongIndex]) {
+        const lyricsInput = document.getElementById('input-lyrics');
+        if (lyricsInput) {
+          let rawLyrics = songs[currentSongIndex].lyrics || '';
+          lyricsInput.value = showChords ? rawLyrics : rawLyrics.replace(/\[.*?\]/g, '');
+          handleEditorInput(lyricsInput);
+        }
+      }
+    }
+
+    function toggleTags() {
+      showTags = !showTags;
+      document.body.classList.toggle('hide-tags', !showTags);
+
+      const normalText = document.getElementById('tag-toggle-text');
+      const liveText = document.getElementById('live-tag-toggle-text');
+
+      const label = showTags ? '標記: 顯' : '標記: 隱';
+      if (normalText) normalText.innerText = label;
+      if (liveText) liveText.innerText = label;
+    }
+
+    function switchSong(value) {
+      if (value === 'new') {
+        createNewSongWithNewTab();
+      } else {
+        const index = parseInt(value);
+        incrementSongViewCount(index);
+        tabs[activeTabIndex] = index;
+        renderTabs();
+        renderSong(songs[index]);
+        populateRightSidebarForm(songs[index]);
+      }
+    }
+
+    function renderSong(song) {
+      document.getElementById('song-title').innerText = song.title;
+      document.getElementById('song-artist').innerText = song.artist || '-';
+      document.getElementById('song-key').innerText = song.key || '-';
+      document.getElementById('song-pref-key').innerText = song.prefKey || '-';
+      document.getElementById('song-bpm').innerText = song.bpm || '-';
+
+      const lyricsInput = document.getElementById('input-lyrics');
+      if (lyricsInput) {
+        let rawLyrics = song.lyrics || '';
+        lyricsInput.value = showChords ? rawLyrics : rawLyrics.replace(/\[.*?\]/g, '');
+        handleEditorInput(lyricsInput);
+      }
+
+      document.getElementById('live-title').innerText = song.title;
+      document.getElementById('live-info').innerHTML = `原: <b class="text-amber-300/90 font-mono">${song.key || '-'}</b> | 常用: <b class="text-emerald-300/90 font-mono">${song.prefKey || '-'}</b> | BPM: <b class="text-stone-300 font-mono">${song.bpm || '-'}</b>`;
+      document.getElementById('live-lyrics-container').innerHTML = generateLyricsHTML(song.lyrics, true);
+    }
+
+    function generateLyricsHTML(lyricsText, isLive = false) {
+      if (!lyricsText) return '';
+      let cleanLyrics = lyricsText.replace(/<mark>(.*?)<\/mark>/g, '*$1*');
+      const lines = cleanLyrics.split('\n');
+
+      return lines.map(line => {
+        const trimmed = line.trim();
+        const hasEmoji = /[\u{1F300}-\u{1F9FF}]/u.test(trimmed);
+        const isTag = customTags.some(tag => trimmed.includes(tag.replace(/[\u{1F300}-\u{1F9FF}]/u, '').trim()));
+
+        if ((hasEmoji || isTag) && !trimmed.includes('[')) {
+          return `<div class="stage-tag text-emerald-400 font-serif-tc font-bold ${isLive ? 'text-2xl md:text-4xl py-2' : 'text-xl py-1'} flex items-center gap-1.5">${trimmed}</div>`;
         }
 
-        function logoutGoogle() {
-            auth.signOut().then(() => {
-                location.reload();
-            });
+        let lineHtml = '<div class="flex flex-wrap items-end gap-x-3.5 my-2">';
+        const regex = /\[(.*?)\]([^\[]*)/g;
+        let match;
+        let hasChord = false;
+
+        const renderHighlight = (str) => {
+          return str.replace(/\*(.*?)\*/g, '<span class="highlight-mark">$1</span>');
+        };
+
+        while ((match = regex.exec(line)) !== null) {
+          hasChord = true;
+          const displayedChord = transposeOffset !== 0 ? transposeChordToken(match[1], transposeOffset) : match[1];
+
+          lineHtml += `
+            <div class="flex flex-col items-start">
+              <span class="chord-label ${isLive ? 'text-amber-200/80 font-mono text-xl md:text-3xl font-bold' : 'text-amber-200/80 font-mono text-lg font-bold'} leading-none mb-1">${displayedChord}</span>
+              <span>${renderHighlight(match[2])}</span>
+            </div>
+          `;
         }
 
-        // 4. 歌單管理功能
-        function createNewSong() {
-            const newId = 'song_' + Date.now();
-            const newSong = {
-                id: newId,
-                title: '未命名歌曲',
-                artist: '',
-                key: 'C',
-                bpm: '120',
-                content: '[Intro]\n\n[Verse]\n'
-            };
-
-            songs[newId] = newSong;
-            saveSongsData();
-            selectSong(newId);
+        if (!hasChord) {
+          lineHtml += `<span>${renderHighlight(line)}</span>`;
         }
+        lineHtml += '</div>';
+        return lineHtml;
+      }).join('');
+    }
 
-        function selectSong(id) {
-            currentSongId = id;
-            loadSongToView(id);
-            renderSongList();
+    function insertTag(tagText) {
+      pushUndoState();
+      const textarea = document.getElementById('input-lyrics');
+      const currentWindowScroll = window.scrollY || document.documentElement.scrollTop;
+      const start = textarea.selectionStart;
+      const end = textarea.selectionEnd;
+      const text = textarea.value;
+      
+      const insertContent = `\n${tagText}\n`;
+      textarea.value = text.substring(0, start) + insertContent + text.substring(end);
+      
+      textarea.focus({ preventScroll: true });
+      textarea.selectionStart = textarea.selectionEnd = start + insertContent.length;
+      
+      handleEditorInput(textarea);
+      window.scrollTo(0, currentWindowScroll);
+    }
+
+    function enterLiveMode() {
+      document.getElementById('normal-view').classList.add('hidden');
+      document.getElementById('live-view').classList.remove('hidden');
+      
+      const liveScrollArea = document.getElementById('live-scroll-area');
+      if (liveScrollArea) liveScrollArea.scrollTop = 0;
+    }
+
+    function exitLiveMode() {
+      if (isScrolling) toggleLiveScroll();
+      
+      if (isCustomFullscreen) {
+        toggleFullscreen();
+      }
+
+      document.getElementById('live-view').classList.add('hidden');
+      document.getElementById('normal-view').classList.remove('hidden');
+    }
+
+    function adjustSpeed(change) {
+      speedLevel = Math.max(1, Math.min(10, speedLevel + change));
+      document.getElementById('speed-label').innerText = speedLevel;
+      
+      if (isScrolling) {
+        clearInterval(scrollTimer);
+        scrollTimer = setInterval(performLiveScroll, getScrollInterval());
+      }
+    }
+
+    function toggleLiveScroll() {
+      isScrolling = !isScrolling;
+      const liveBtn = document.getElementById('live-scroll-btn');
+
+      if (isScrolling) {
+        if (liveBtn) {
+          liveBtn.classList.replace('bg-stone-200', 'bg-amber-200/90');
+          liveBtn.innerText = '暫停滾動';
         }
-
-        function loadSongToView(id) {
-            const song = songs[id];
-            if (!song) return;
-
-            // 編輯區填值
-            document.getElementById('edit-title').value = song.title || '';
-            document.getElementById('edit-artist').value = song.artist || '';
-            document.getElementById('edit-key').value = song.key || '';
-            document.getElementById('edit-bpm').value = song.bpm || '';
-            document.getElementById('edit-content').value = song.content || '';
-
-            // Live 模式填值
-            document.getElementById('live-title').innerText = song.title || '無歌名';
-            document.getElementById('live-artist').innerText = song.artist || '無歌手';
-            document.getElementById('live-key').innerText = song.key || '-';
-            document.getElementById('live-bpm').innerText = song.bpm || '-';
-            
-            // 處理段落標籤與螢光筆語法
-            let formattedContent = (song.content || '')
-                .replace(/(\[[A-Za-z0-9\s]+\])/g, '<span class="stage-tag">$1</span>')
-                .replace(/\[\[(.*?)\]\]/g, '<span class="hl">$1</span>');
-            
-            document.getElementById('live-content').innerHTML = formattedContent;
+        scrollTimer = setInterval(performLiveScroll, getScrollInterval());
+      } else {
+        if (liveBtn) {
+          liveBtn.classList.replace('bg-amber-200/90', 'bg-stone-200');
+          liveBtn.innerText = '開始滾動';
         }
+        clearInterval(scrollTimer);
+      }
+    }
 
-        function autoSave() {
-            if (!currentSongId) return;
+    function openNewSongForm() {
+      document.getElementById('song-title').innerText = '新歌曲';
+      document.getElementById('song-artist').innerText = '-';
+      document.getElementById('song-key').innerText = '-';
+      document.getElementById('song-pref-key').innerText = '-';
+      document.getElementById('song-bpm').innerText = '-';
 
-            songs[currentSongId] = {
-                id: currentSongId,
-                title: document.getElementById('edit-title').value,
-                artist: document.getElementById('edit-artist').value,
-                key: document.getElementById('edit-key').value,
-                bpm: document.getElementById('edit-bpm').value,
-                content: document.getElementById('edit-content').value
-            };
+      document.getElementById('input-title').value = '';
+      document.getElementById('input-artist').value = '';
+      document.getElementById('input-key').value = '-';
+      document.getElementById('input-pref-key').value = '-';
+      document.getElementById('input-bpm').value = '';
+      
+      const lyricsInput = document.getElementById('input-lyrics');
+      if (lyricsInput) {
+        lyricsInput.value = '';
+        handleEditorInput(lyricsInput);
+      }
+    }
 
-            // 防抖儲存 (Debounce)
-            clearTimeout(saveTimeout);
-            saveTimeout = setTimeout(() => {
-                saveSongsData();
-                showToast('已儲存變更');
-            }, 500);
-        }
+    function saveCurrentSong() {
+      const title = document.getElementById('input-title').value || '未命名歌曲';
+      const artist = document.getElementById('input-artist').value || '-';
+      const key = document.getElementById('input-key').value || '-';
+      const prefKey = document.getElementById('input-pref-key').value || '-';
+      const bpm = document.getElementById('input-bpm').value || '-';
+      const lyrics = document.getElementById('input-lyrics').value || '';
+      
+      const currentSongIndex = tabs[activeTabIndex];
+      const currentViewCount = (currentSongIndex !== 'new' && songs[currentSongIndex] && songs[currentSongIndex].viewCount) || 0;
 
-        function saveSongsData() {
-            if (currentUser) {
-                // 儲存至 Firebase 專屬帳號資料夾
-                db.ref('users/' + currentUser.uid + '/songs').set(songs);
-            } else {
-                // 未登入，儲存於 localStorage
-                localStorage.setItem('stageNote_guest_songs', JSON.stringify(songs));
-            }
-            renderSongList();
-        }
+      const updatedSong = { 
+        id: 'song-' + Date.now(), 
+        title, 
+        artist, 
+        key, 
+        prefKey, 
+        bpm,
+        lyrics,
+        viewCount: currentViewCount
+      };
 
-        function deleteCurrentSong() {
-            if (!currentSongId) return;
-            if (confirm('確定要刪除這首歌曲嗎？')) {
-                delete songs[currentSongId];
-                if (currentUser) {
-                    db.ref('users/' + currentUser.uid + '/songs/' + currentSongId).remove();
-                } else {
-                    localStorage.setItem('stageNote_guest_songs', JSON.stringify(songs));
-                }
-                currentSongId = null;
-                renderSongList();
-                // 清空介面
-                document.getElementById('edit-title').value = '';
-                document.getElementById('edit-artist').value = '';
-                document.getElementById('edit-key').value = '';
-                document.getElementById('edit-bpm').value = '';
-                document.getElementById('edit-content').value = '';
-                document.getElementById('live-content').innerHTML = '請選取歌曲...';
-            }
-        }
+      if (currentSongIndex !== 'new' && songs[currentSongIndex]) {
+        songs[currentSongIndex] = updatedSong;
+      } else {
+        songs.push(updatedSong);
+        tabs[activeTabIndex] = songs.length - 1;
+      }
 
-        // 5. 渲染左側歌單列表
-        function renderSongList() {
-            const listEl = document.getElementById('song-list');
-            const searchKeyword = document.getElementById('search-input').value.toLowerCase();
-            listEl.innerHTML = '';
+      saveLocalCache();
+      
+      const onSavedComplete = () => {
+        renderTabs();
+        renderCurrentTabSong();
+        showToast("已保存！");
+      };
 
-            Object.values(songs).forEach(song => {
-                const title = song.title || '未命名歌曲';
-                const artist = song.artist || '';
-
-                if (title.toLowerCase().includes(searchKeyword) || artist.toLowerCase().includes(searchKeyword)) {
-                    const li = document.createElement('li');
-                    const isActive = song.id === currentSongId;
-                    li.className = `p-3 cursor-pointer transition border-l-4 ${isActive ? 'bg-gray-800/80 border-sky-400' : 'border-transparent hover:bg-gray-800/40'}`;
-                    li.onclick = () => selectSong(song.id);
-                    li.innerHTML = `
-                        <div class="font-bold text-sm text-gray-100 truncate">${title}</div>
-                        <div class="text-xs text-gray-400 truncate flex justify-between mt-1">
-                            <span>${artist || '未指定歌手'}</span>
-                            <span class="text-sky-400 font-mono">${song.key ? song.key : ''}</span>
-                        </div>
-                    `;
-                    listEl.appendChild(li);
-                }
-            });
-        }
-
-        function filterSongs() {
-            renderSongList();
-        }
-
-        // 6. UI 輔助功能
-        function toggleMode() {
-            isLiveMode = !isLiveMode;
-            const editorView = document.getElementById('editor-view');
-            const liveView = document.getElementById('live-view');
-            const btn = document.getElementById('mode-toggle-btn');
-            const sidebar = document.getElementById('sidebar');
-
-            if (isLiveMode) {
-                editorView.classList.add('hidden');
-                liveView.classList.remove('hidden');
-                sidebar.classList.add('hidden', 'md:flex'); // Live 模式自動隱藏側邊欄以增加視野
-                btn.innerText = '切換編輯模式';
-                btn.className = 'bg-sky-600 hover:bg-sky-500 text-white text-xs px-3 py-1.5 rounded-lg font-medium';
-                if (currentSongId) loadSongToView(currentSongId);
-            } else {
-                liveView.classList.add('hidden');
-                editorView.classList.remove('hidden');
-                sidebar.classList.remove('hidden');
-                btn.innerText = '進入演出模式';
-                btn.className = 'bg-gray-800 hover:bg-gray-700 border border-gray-700 text-sky-400 text-xs px-3 py-1.5 rounded-lg font-medium';
-            }
-        }
-
-        function insertTag(tagText) {
-            const textarea = document.getElementById('edit-content');
-            const start = textarea.selectionStart;
-            const end = textarea.selectionEnd;
-            const text = textarea.value;
-            textarea.value = text.substring(0, start) + '\n' + tagText + '\n' + text.substring(end);
-            autoSave();
-        }
-
-        function applyHighlight() {
-            const textarea = document.getElementById('edit-content');
-            const start = textarea.selectionStart;
-            const end = textarea.selectionEnd;
-            const selectedText = textarea.value.substring(start, end);
-            
-            if (selectedText) {
-                const replacement = `[[${selectedText}]]`;
-                textarea.value = textarea.value.substring(0, start) + replacement + textarea.value.substring(end);
-                autoSave();
-            } else {
-                alert('請先用鼠標/手指選取要套用螢光筆的文字！');
-            }
-        }
-
-        function showToast(msg) {
-            const toast = document.getElementById('toast');
-            toast.innerText = msg;
-            toast.classList.add('show');
-            setTimeout(() => { toast.classList.remove('show'); }, 1500);
-        }
-    </script>
+      if (navigator.onLine && currentUser) {
+        getUserDbRef('songs').set(songs).then(onSavedComplete);
+      } else {
+        onSavedComplete();
+      }
+    }
+  </script>
 </body>
 </html>
