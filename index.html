@@ -12,8 +12,6 @@
   <!-- PWA Manifest -->
 <link rel="manifest" href="manifest.json">
 
-
-
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/lucide@latest"></script>
   
@@ -540,9 +538,12 @@
       }
     }
 
+    // 🛡️ 修復防跳動：自動高度調整時保護滾動軸
     function adjustTextareaHeight(el) {
+      const currentScroll = window.scrollY || document.documentElement.scrollTop;
       el.style.height = 'auto';
       el.style.height = el.scrollHeight + 'px';
+      window.scrollTo(0, currentScroll);
     }
 
     function hideLoadingSplash() {
@@ -637,7 +638,7 @@
             bpm: "120",
             duration: "04:30",
             viewCount: 1,
-            lyrics: `作詞：潘雲安  作曲：潘雲安\n\n[C]我肯定在幾百年前就說過愛你\n\n[G]只是你忘了\n\n[Am]我也沒想起\n\n⭐ 重點\n\n[F]我肯定在幾百年前就說過愛你`
+            lyrics: `作詞：潘雲安  作曲：潘雲安\n\n[C]我肯定在幾百年前就說過愛你\n\n[G]只是你忘了\n\n[Am]領域我也沒想起\n\n⭐ 重點\n\n[F]我肯定在幾百年前就說過愛你`
           }];
           db.ref('songs').set(songs);
           saveLocalCache();
@@ -748,17 +749,23 @@
       input.value = '';
     }
 
+    // 🛡️ 修復：插入和弦時鎖定捲軸，防止畫面跳動
     function insertChord(chordText) {
       const textarea = document.getElementById('input-lyrics');
+      const currentWindowScroll = window.scrollY || document.documentElement.scrollTop;
       const start = textarea.selectionStart;
       const end = textarea.selectionEnd;
       const text = textarea.value;
       
       const insertContent = `[${chordText}]`;
       textarea.value = text.substring(0, start) + insertContent + text.substring(end);
-      textarea.focus();
+      
+      // 使用 preventScroll 防止聚焦時噴回頂部
+      textarea.focus({ preventScroll: true });
       textarea.selectionStart = textarea.selectionEnd = start + insertContent.length;
+      
       adjustTextareaHeight(textarea);
+      window.scrollTo(0, currentWindowScroll);
       autoSaveLyrics();
     }
 
@@ -1135,17 +1142,23 @@
       }).join('');
     }
 
+    // 🛡️ 修復：插入標記時鎖定捲軸，防止畫面跳動
     function insertTag(tagText) {
       const textarea = document.getElementById('input-lyrics');
+      const currentWindowScroll = window.scrollY || document.documentElement.scrollTop;
       const start = textarea.selectionStart;
       const end = textarea.selectionEnd;
       const text = textarea.value;
       
       const insertContent = `\n${tagText}\n`;
       textarea.value = text.substring(0, start) + insertContent + text.substring(end);
-      textarea.focus();
+      
+      // 使用 preventScroll 防止聚焦時噴回頂部
+      textarea.focus({ preventScroll: true });
       textarea.selectionStart = textarea.selectionEnd = start + insertContent.length;
+      
       adjustTextareaHeight(textarea);
+      window.scrollTo(0, currentWindowScroll);
       autoSaveLyrics();
     }
 
