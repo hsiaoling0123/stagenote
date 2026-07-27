@@ -60,16 +60,75 @@
       z-index: 9999 !important;
     }
     /* 🖍️ 螢光筆高亮樣式 */
-    mark {
-      background-color: rgba(251, 191, 36, 0.35);
+    .highlight-mark {
+      background-color: rgba(251, 191, 36, 0.4);
       color: #fef08a;
       padding: 0px 4px;
       border-radius: 4px;
       border-bottom: 2px solid #f59e0b;
+      display: inline;
+    }
+    /* 🎨 雙層編輯區樣式對齊 */
+    .editor-container {
+      position: relative;
+      width: 100%;
+    }
+    .editor-backdrop, .editor-textarea {
+      font-family: 'Noto Serif TC', Georgia, serif;
+      font-size: 1.25rem; /* text-xl */
+      line-height: 1.75;  /* leading-relaxed */
+      letter-spacing: 0.025em; /* tracking-wide */
+      padding: 0;
+      margin: 0;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+      border: none;
+      outline: none;
+      box-sizing: border-box;
+      width: 100%;
+    }
+    @media (min-width: 768px) {
+      .editor-backdrop, .editor-textarea {
+        font-size: 1.5rem; /* text-2xl */
+      }
+    }
+    .editor-backdrop {
+      position: absolute;
+      top: 0;
+      left: 0;
+      height: 100%;
+      color: transparent;
+      pointer-events: none;
+      overflow: hidden;
+      z-index: 1;
+    }
+    .editor-backdrop .normal-text {
+      color: #e7e5e4; /* stone-200 */
+    }
+    .editor-backdrop .tag-text {
+      color: #34d399; /* emerald-400 */
+      font-weight: 600;
+    }
+    .editor-backdrop .chord-text {
+      color: #fde047; /* amber-300 */
+      font-weight: 600;
+    }
+    .editor-textarea {
+      position: relative;
+      z-index: 2;
+      background: transparent;
+      color: transparent;
+      caret-color: #f3f4f6; /* 光標維持看得見 */
     }
   </style>
 </head>
 <body class="bg-zinc-950 text-stone-200 min-h-screen p-4 md:p-8 pb-16 font-sans select-none antialiased">
+
+  <!-- 🍞 自動消失的保存提示（Toast） -->
+  <div id="toast-message" class="fixed top-6 left-1/2 -translate-x-1/2 bg-emerald-900/90 text-emerald-100 border border-emerald-500/50 px-5 py-2.5 rounded-full text-xs md:text-sm font-semibold tracking-wider shadow-2xl z-[10001] transition-all duration-300 opacity-0 pointer-events-none translate-y-[-10px] flex items-center gap-2">
+    <i data-lucide="check-circle" class="w-4 h-4 text-emerald-300"></i>
+    <span id="toast-text">已保存！</span>
+  </div>
 
   <!-- 🌟 載入中：歌手專屬打氣 Splash 畫面 -->
   <div id="loading-splash" class="fixed inset-0 bg-zinc-950 z-[1000] flex flex-col items-center justify-center p-6 transition-opacity duration-700 opacity-100">
@@ -181,11 +240,15 @@
           </div>
         </div>
 
+        <!-- 🎨 雙層即時上色編輯器容器 -->
         <div class="bg-stone-900/30 border border-stone-800/60 rounded-2xl p-6 shadow-inner relative focus-within:border-stone-700 transition">
           <div class="text-[11px] text-stone-500 mb-3 font-serif-tc flex justify-between items-center tracking-widest">
-            <span>✎ 點擊下方隨心編輯歌詞 (支援 [C] 和弦標記)</span>
+            <span>✎ 點擊下方隨心編輯歌詞 (支援 [C] 和弦與 *螢光筆* 標記)</span>
           </div>
-          <textarea id="input-lyrics" oninput="autoSaveLyrics(); adjustTextareaHeight(this);" class="auto-expand-textarea w-full bg-transparent text-xl md:text-2xl text-stone-200 font-serif-tc leading-relaxed tracking-wide focus:outline-none placeholder-stone-700" placeholder="寫下你的歌詞..."></textarea>
+          <div class="editor-container">
+            <div id="editor-backdrop" class="editor-backdrop"></div>
+            <textarea id="input-lyrics" oninput="handleEditorInput(this)" class="auto-expand-textarea editor-textarea placeholder-stone-700" placeholder="寫下你的歌詞..."></textarea>
+          </div>
         </div>
       </div>
 
@@ -383,6 +446,7 @@
     let isCustomFullscreen = false;
 
     let transposeOffset = 0;
+    let toastTimer = null;
 
     let customChords = [
       'C', 'D', 'E', 'F', 'G', 'A', 'B',
@@ -401,6 +465,23 @@
       "C", "C# / Db", "D", "D# / Eb", "E", "F", "F# / Gb", "G", "G# / Ab", "A", "A# / Bb", "B",
       "Am", "A#m / Bbm", "Bm", "Cm", "C#m", "Dm", "D#m / Ebm", "Em", "Fm", "F#m", "Gm", "G#m"
     ];
+
+    // 🍞 顯示自動消失的 Toast 通知
+    function showToast(msg = "已保存！") {
+      const toast = document.getElementById('toast-message');
+      const toastText = document.getElementById('toast-text');
+      if (!toast || !toastText) return;
+
+      toastText.innerText = msg;
+      toast.classList.remove('opacity-0', 'pointer-events-none', 'translate-y-[-10px]');
+      toast.classList.add('opacity-100', 'translate-y-0');
+
+      if (toastTimer) clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => {
+        toast.classList.remove('opacity-100', 'translate-y-0');
+        toast.classList.add('opacity-0', 'pointer-events-none', 'translate-y-[-10px]');
+      }, 1500); // 1.5 秒後自動消失
+    }
 
     function loadLocalCache() {
       try {
@@ -494,8 +575,59 @@
     function adjustTextareaHeight(el) {
       const currentScroll = window.scrollY || document.documentElement.scrollTop;
       el.style.height = 'auto';
-      el.style.height = el.scrollHeight + 'px';
+      const newHeight = el.scrollHeight + 'px';
+      el.style.height = newHeight;
+      const backdrop = document.getElementById('editor-backdrop');
+      if (backdrop) backdrop.style.height = newHeight;
       window.scrollTo(0, currentScroll);
+    }
+
+    function handleEditorInput(el) {
+      autoSaveLyrics();
+      adjustTextareaHeight(el);
+      renderEditorBackdrop(el.value);
+    }
+
+    function renderEditorBackdrop(text) {
+      const backdrop = document.getElementById('editor-backdrop');
+      if (!backdrop) return;
+
+      if (!text) {
+        backdrop.innerHTML = '';
+        return;
+      }
+
+      let cleanText = text.replace(/<mark>(.*?)<\/mark>/g, '*$1*');
+
+      const lines = cleanText.split('\n');
+      const renderedLines = lines.map(line => {
+        if (!line) return '<br>';
+
+        const trimmed = line.trim();
+        const hasEmoji = /[\u{1F300}-\u{1F9FF}]/u.test(trimmed);
+        const isTag = customTags.some(tag => trimmed.includes(tag.replace(/[\u{1F300}-\u{1F9FF}]/u, '').trim()));
+
+        if ((hasEmoji || isTag) && !trimmed.includes('[')) {
+          return `<span class="tag-text">${escapeHtml(line)}</span>`;
+        }
+
+        let escaped = escapeHtml(line);
+        escaped = escaped.replace(/\*(.*?)\*/g, '<span class="highlight-mark normal-text">$1</span>');
+        escaped = escaped.replace(/\[(.*?)\]/g, '<span class="chord-text">[$1]</span>');
+
+        return `<span class="normal-text">${escaped}</span>`;
+      });
+
+      backdrop.innerHTML = renderedLines.join('<br>') + '<br>';
+    }
+
+    function escapeHtml(str) {
+      return str
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
     }
 
     function hideLoadingSplash() {
@@ -713,15 +845,13 @@
       textarea.focus({ preventScroll: true });
       textarea.selectionStart = textarea.selectionEnd = start + insertContent.length;
       
-      adjustTextareaHeight(textarea);
+      handleEditorInput(textarea);
       window.scrollTo(0, currentWindowScroll);
-      autoSaveLyrics();
     }
 
     function renderTagsList() {
       const container = document.getElementById('tags-list-container');
       
-      // 🖍️ 在第一項固定放一個「螢光筆」按鈕
       const highlightBtn = `
         <button 
           onclick="applyHighlight()"
@@ -748,7 +878,6 @@
       container.innerHTML = highlightBtn + tagsHTML;
     }
 
-    // 🖍️ 螢光筆功能實現
     function applyHighlight() {
       const textarea = document.getElementById('input-lyrics');
       const currentWindowScroll = window.scrollY || document.documentElement.scrollTop;
@@ -757,12 +886,13 @@
       const text = textarea.value;
 
       if (start === end) {
-        alert("請先在歌詞輸入框中框選想要高亮的文字！");
+        showToast("請先框選想要高亮的文字！");
         return;
       }
 
       const selectedText = text.substring(start, end);
-      const insertContent = `<mark>${selectedText}</mark>`;
+      const cleanText = selectedText.replace(/<\/?mark>/g, '');
+      const insertContent = `*${cleanText}*`;
       
       textarea.value = text.substring(0, start) + insertContent + text.substring(end);
       
@@ -770,9 +900,8 @@
       textarea.selectionStart = start;
       textarea.selectionEnd = start + insertContent.length;
       
-      adjustTextareaHeight(textarea);
+      handleEditorInput(textarea);
       window.scrollTo(0, currentWindowScroll);
-      autoSaveLyrics();
     }
 
     let longPressTimer = null;
@@ -961,7 +1090,7 @@
       const lyricsInput = document.getElementById('input-lyrics');
       let rawLyrics = song.lyrics || '';
       lyricsInput.value = showChords ? rawLyrics : rawLyrics.replace(/\[.*?\]/g, '');
-      adjustTextareaHeight(lyricsInput);
+      handleEditorInput(lyricsInput);
     }
 
     function toggleSearchModal() {
@@ -1037,7 +1166,7 @@
         if (lyricsInput) {
           let rawLyrics = songs[currentSongIndex].lyrics || '';
           lyricsInput.value = showChords ? rawLyrics : rawLyrics.replace(/\[.*?\]/g, '');
-          adjustTextareaHeight(lyricsInput);
+          handleEditorInput(lyricsInput);
         }
       }
     }
@@ -1078,7 +1207,7 @@
       if (lyricsInput) {
         let rawLyrics = song.lyrics || '';
         lyricsInput.value = showChords ? rawLyrics : rawLyrics.replace(/\[.*?\]/g, '');
-        adjustTextareaHeight(lyricsInput);
+        handleEditorInput(lyricsInput);
       }
 
       document.getElementById('live-title').innerText = song.title;
@@ -1086,10 +1215,10 @@
       document.getElementById('live-lyrics-container').innerHTML = generateLyricsHTML(song.lyrics, true);
     }
 
-    // 🎨 標籤顏色區隔（改為翡翠綠 emerald-400）
     function generateLyricsHTML(lyricsText, isLive = false) {
       if (!lyricsText) return '';
-      const lines = lyricsText.split('\n');
+      let cleanLyrics = lyricsText.replace(/<mark>(.*?)<\/mark>/g, '*$1*');
+      const lines = cleanLyrics.split('\n');
 
       return lines.map(line => {
         const trimmed = line.trim();
@@ -1105,6 +1234,10 @@
         let match;
         let hasChord = false;
 
+        const renderHighlight = (str) => {
+          return str.replace(/\*(.*?)\*/g, '<span class="highlight-mark">$1</span>');
+        };
+
         while ((match = regex.exec(line)) !== null) {
           hasChord = true;
           const displayedChord = transposeOffset !== 0 ? transposeChordToken(match[1], transposeOffset) : match[1];
@@ -1112,13 +1245,13 @@
           lineHtml += `
             <div class="flex flex-col items-start">
               <span class="chord-label ${isLive ? 'text-amber-200/80 font-mono text-xl md:text-3xl font-bold' : 'text-amber-200/80 font-mono text-lg font-bold'} leading-none mb-1">${displayedChord}</span>
-              <span>${match[2]}</span>
+              <span>${renderHighlight(match[2])}</span>
             </div>
           `;
         }
 
         if (!hasChord) {
-          lineHtml += `<span>${line}</span>`;
+          lineHtml += `<span>${renderHighlight(line)}</span>`;
         }
         lineHtml += '</div>';
         return lineHtml;
@@ -1138,9 +1271,8 @@
       textarea.focus({ preventScroll: true });
       textarea.selectionStart = textarea.selectionEnd = start + insertContent.length;
       
-      adjustTextareaHeight(textarea);
+      handleEditorInput(textarea);
       window.scrollTo(0, currentWindowScroll);
-      autoSaveLyrics();
     }
 
     function enterLiveMode() {
@@ -1207,11 +1339,11 @@
       const lyricsInput = document.getElementById('input-lyrics');
       if (lyricsInput) {
         lyricsInput.value = '';
-        adjustTextareaHeight(lyricsInput);
+        handleEditorInput(lyricsInput);
       }
     }
 
-    // 💾 點擊保存時觸發彈窗
+    // 💾 保存作品並觸發 1.5 秒自動消失的 Toast 通知
     function saveCurrentSong() {
       const title = document.getElementById('input-title').value || '未命名歌曲';
       const artist = document.getElementById('input-artist').value || '-';
@@ -1246,7 +1378,7 @@
       const onSavedComplete = () => {
         renderTabs();
         renderCurrentTabSong();
-        alert("已保存！"); // 🎉 跳出保存成功彈窗
+        showToast("已保存！"); // 🎉 觸發自動消失浮動提醒
       };
 
       if (navigator.onLine) {
