@@ -322,7 +322,7 @@
         <div>
           <div class="flex justify-between items-center mb-2.5">
             <label class="text-xs font-serif-tc text-amber-200/80 font-medium">插入舞台註記與畫筆</label>
-            <span class="text-[10px] text-stone-600">（長按標籤即可移除）</span>
+            <span class="text-[10px] text-stone-600">（長按標籤可進入編輯/刪除模式）</span>
           </div>
           <div id="tags-list-container" class="flex flex-wrap gap-2 max-h-40 overflow-y-auto p-3 bg-stone-950/80 rounded-xl border border-stone-800/80 mb-3">
           </div>
@@ -463,6 +463,7 @@
     let transposeOffset = 0;
     let toastTimer = null;
     let undoHistory = [];
+    let isTagEditMode = false; // 🏷️ 標籤是否處於編輯/刪除/排序模式
 
     let customChords = [
       'C', 'D', 'E', 'F', 'G', 'A', 'B',
@@ -895,6 +896,7 @@
       window.scrollTo(0, currentWindowScroll);
     }
 
+    // 🏷️ 渲染標籤區塊（支援一般點擊插入、長安進入編輯/刪除/排序模式）
     function renderTagsList() {
       const container = document.getElementById('tags-list-container');
       
@@ -905,23 +907,124 @@
         >
           🖍️ 螢光筆
         </button>
+        ${isTagEditMode ? `
+          <button 
+            onclick="toggleTagEditMode()"
+            class="bg-rose-950/80 hover:bg-rose-900 text-rose-200 font-bold active:scale-95 text-xs px-3 py-1.5 rounded-lg border border-rose-700/60 transition flex items-center gap-1 shadow-sm ml-auto"
+          >
+            ✓ 完成編輯
+          </button>
+        ` : `
+          <span class="text-[10px] text-stone-500 self-center ml-auto font-serif-tc">長按標籤可編輯</span>
+        `}
       `;
 
-      const tagsHTML = customTags.map((tag, idx) => `
-        <button 
-          id="tag-btn-${idx}"
-          onclick="handleTagClick('${tag}', ${idx})"
-          oncontextmenu="handleTagContextMenu(event, '${tag}', ${idx})"
-          ontouchstart="handleTagTouchStart('${tag}', ${idx})"
-          ontouchend="handleTagTouchEnd()"
-          ontouchmove="handleTagTouchEnd()"
-          class="bg-stone-900 hover:bg-stone-800 active:scale-95 text-xs font-medium px-3 py-1.5 rounded-lg text-emerald-300/90 border border-stone-800 transition"
-        >
-          ${tag}
-        </button>
-      `).join('');
+      const tagsHTML = customTags.map((tag, idx) => {
+        if (isTagEditMode) {
+          // 編輯模式：顯示刪除叉叉與左右移動按鈕
+          return `
+            <div class="flex items-center gap-1 bg-stone-900 border border-stone-700 rounded-lg px-2 py-1 text-xs text-stone-200">
+              <span class="max-w-[80px] truncate">${tag}</span>
+              <div class="flex items-center gap-0.5 ml-1 border-l border-stone-700 pl-1">
+                ${idx > 0 ? `<button onclick="moveTag(${idx}, -1)" class="text-stone-400 hover:text-white px-1 text-[10px]" title="往左移">◀</button>` : ''}
+                ${idx < customTags.length - 1 ? `<button onclick="moveTag(${idx}, 1)" class="text-stone-400 hover:text-white px-1 text-[10px]" title="往右移">▶</button>` : ''}
+                <button onclick="deleteCustomTag(${idx})" class="text-rose-400 hover:text-rose-200 px-1 font-bold ml-0.5" title="刪除">✕</button>
+              </div>
+            </div>
+          `;
+        } else {
+          // 一般模式：點擊插入，長按進入編輯
+          return `
+            <button 
+              onclick="handleTagClick('${tag}', ${idx})"
+              oncontextmenu="handleTagContextMenu(event, '${tag}', ${idx})"
+              ontouchstart="handleTagTouchStart('${tag}', ${idx})"
+              ontouchend="handleTagTouchEnd()"
+              ontouchmove="handleTagTouchEnd()"
+              class="bg-stone-900 hover:bg-stone-800 active:scale-95 text-xs font-medium px-3 py-1.5 rounded-lg text-emerald-300/90 border border-stone-800 transition select-none"
+            >
+              ${tag}
+            </button>
+          `;
+        }
+      }).join('');
 
       container.innerHTML = toolbarBtns + tagsHTML;
+    }
+
+    function toggleTagEditMode() {
+      isTagEditMode = !isTagEditMode;
+      renderTagsList();
+    }
+
+    let longPressTimer = null;
+    let isLongPressTriggered = false;
+
+    function handleTagTouchStart(tag, index) {
+      isLongPressTriggered = false;
+      longPressTimer = setTimeout(() => {
+        isLongPressTriggered = true;
+        // 觸發長安，進入編輯模式
+        isTagEditMode = true;
+        renderTagsList();
+        showToast("已進入標籤編輯模式");
+      }, 600);
+    }
+
+    function handleTagTouchEnd() {
+      if (longPressTimer) {
+        clearTimeout(longPressTimer);
+        longPressTimer = null;
+      }
+    }
+
+    function handleTagClick(tag, index) {
+      if (isLongPressTriggered) {
+        isLongPressTriggered = false;
+        return;
+      }
+      insertTag(tag);
+    }
+
+    function handleTagContextMenu(e, tag, index) {
+      e.preventDefault();
+      isTagEditMode = true;
+      renderTagsList();
+    }
+
+    function deleteCustomTag(index) {
+      const removed = customTags.splice(index, 1);
+      saveLocalCache();
+      if (currentUser) getUserDbRef('custom_tags').set(customTags);
+      renderTagsList();
+      showToast(`已刪除標籤: ${removed}`);
+    }
+
+    function moveTag(index, direction) {
+      const targetIndex = index + direction;
+      if (targetIndex < 0 || targetIndex >= customTags.length) return;
+      
+      const temp = customTags[index];
+      customTags[index] = customTags[targetIndex];
+      customTags[targetIndex] = temp;
+
+      saveLocalCache();
+      if (currentUser) getUserDbRef('custom_tags').set(customTags);
+      renderTagsList();
+    }
+
+    function addCustomTag() {
+      const input = document.getElementById('custom-tag-input');
+      const newTag = input.value.trim();
+      if (!newTag) return;
+
+      if (!customTags.includes(newTag)) {
+        customTags.push(newTag);
+        saveLocalCache();
+        if (currentUser) getUserDbRef('custom_tags').set(customTags);
+      }
+      input.value = '';
+      renderTagsList();
     }
 
     function applyHighlight() {
@@ -950,58 +1053,6 @@
       
       handleEditorInput(textarea);
       window.scrollTo(0, currentWindowScroll);
-    }
-
-    let longPressTimer = null;
-    let isLongPressTriggered = false;
-
-    function handleTagTouchStart(tag, index) {
-      isLongPressTriggered = false;
-      longPressTimer = setTimeout(() => {
-        isLongPressTriggered = true;
-        confirmDeleteCustomTag(tag, index);
-      }, 500);
-    }
-
-    function handleTagTouchEnd() {
-      if (longPressTimer) {
-        clearTimeout(longPressTimer);
-        longPressTimer = null;
-      }
-    }
-
-    function handleTagClick(tag, index) {
-      if (isLongPressTriggered) {
-        isLongPressTriggered = false;
-        return;
-      }
-      insertTag(tag);
-    }
-
-    function handleTagContextMenu(e, tag, index) {
-      e.preventDefault();
-      confirmDeleteCustomTag(tag, index);
-    }
-
-    function confirmDeleteCustomTag(tag, index) {
-      if (confirm(`確定要移除標記 『${tag}』 嗎？`)) {
-        customTags.splice(index, 1);
-        saveLocalCache();
-        if (currentUser) getUserDbRef('custom_tags').set(customTags);
-      }
-    }
-
-    function addCustomTag() {
-      const input = document.getElementById('custom-tag-input');
-      const newTag = input.value.trim();
-      if (!newTag) return;
-
-      if (!customTags.includes(newTag)) {
-        customTags.push(newTag);
-        saveLocalCache();
-        if (currentUser) getUserDbRef('custom_tags').set(customTags);
-      }
-      input.value = '';
     }
 
     function initKeySelectOptions() {
@@ -1054,7 +1105,9 @@
 
       const tabsHTML = tabs.map((songIndex, tIdx) => {
         let title = '新歌曲';
-        if (songIndex !== 'new' && songs[songIndex]) {
+        if (songIndex === 'new') {
+          title = '新歌曲 (未保存)';
+        } else if (songs[songIndex]) {
           title = songs[songIndex].title;
         }
         
@@ -1070,7 +1123,7 @@
           </div>
         `;
       }).join('') + `
-        <button onclick="addNewTab()" class="bg-stone-900 hover:bg-stone-800 text-amber-200/80 p-1.5 rounded-full border border-stone-800 shrink-0 flex items-center justify-center transition active:scale-95">
+        <button onclick="createNewSongWithNewTab()" class="bg-stone-900 hover:bg-stone-800 text-amber-200/80 p-1.5 rounded-full border border-stone-800 shrink-0 flex items-center justify-center transition active:scale-95" title="新增分頁">
           <i data-lucide="plus" class="w-4 h-4"></i>
         </button>
       `;
@@ -1089,15 +1142,15 @@
       renderCurrentTabSong();
     }
 
-    function addNewTab() {
-      tabs.push(0);
-      activeTabIndex = tabs.length - 1;
-      renderTabs();
-      renderCurrentTabSong();
-      toggleSearchModal();
-    }
-
+    // 🚀 修正按了新增分頁後不想新增、按叉叉或切換時會自己亂新增一頁的問題
     function createNewSongWithNewTab() {
+      // 檢查目前分頁是否已經是空的「新歌曲」，如果是就不重複建立
+      const currentSongIndex = tabs[activeTabIndex];
+      if (currentSongIndex === 'new') {
+        showToast("目前已經在新增分頁中！");
+        return;
+      }
+
       tabs.push('new');
       activeTabIndex = tabs.length - 1;
       renderTabs();
@@ -1106,6 +1159,8 @@
 
     function closeTab(tIdx) {
       if (tabs.length <= 1) return;
+      
+      // 如果關閉的是目前正在檢視的分頁，安全切換回前一個分頁
       tabs.splice(tIdx, 1);
       if (activeTabIndex >= tabs.length) {
         activeTabIndex = tabs.length - 1;
