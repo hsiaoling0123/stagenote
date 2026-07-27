@@ -68,6 +68,15 @@
       border-bottom: 2px solid #f59e0b;
       display: inline-block;
     }
+    /* 隱藏 number 輸入框預設的箭頭按鈕 */
+    input[type=number]::-webkit-inner-spin-button, 
+    input[type=number]::-webkit-outer-spin-button { 
+      -webkit-appearance: none;
+      margin: 0;
+    }
+    input[type=number] {
+      -moz-appearance: textfield;
+    }
   </style>
 </head>
 <body class="bg-zinc-950 text-stone-200 min-h-screen p-4 md:p-8 pb-16 font-sans select-none antialiased">
@@ -198,12 +207,22 @@
       </div>
 
       <div class="w-full md:w-6/12 lg:w-5/12 bg-stone-900/70 border border-stone-800 rounded-2xl p-6 flex flex-col gap-6 shadow-xl sticky top-6 h-fit z-30 shrink-0">
+        <!-- 頂部工具列標頭（右側放置「復原」按鈕） -->
         <div class="flex justify-between items-center border-b border-stone-800/80 pb-3">
           <h3 class="text-base font-serif-tc font-medium text-stone-200 flex items-center gap-2">
             <i data-lucide="sliders" class="w-4 h-4 text-stone-400"></i>
             作品細節與標記
           </h3>
-          <span class="text-[10px] text-emerald-400/80 font-mono bg-emerald-950/40 px-2.5 py-0.5 rounded-full border border-emerald-900/60">即時同步</span>
+          <div class="flex items-center gap-2">
+            <button 
+              onclick="undoAction()"
+              class="bg-stone-800 hover:bg-stone-700 text-stone-200 font-medium active:scale-95 text-[11px] px-2.5 py-1 rounded-full border border-stone-700 transition flex items-center gap-1 shadow-sm"
+              title="復原上一步"
+            >
+              ↩️ 復原
+            </button>
+            <span class="text-[10px] text-emerald-400/80 font-mono bg-emerald-950/40 px-2.5 py-0.5 rounded-full border border-emerald-900/60">即時同步</span>
+          </div>
         </div>
 
         <div class="grid grid-cols-2 gap-3.5">
@@ -230,7 +249,8 @@
           </div>
           <div>
             <label class="text-[11px] font-serif-tc text-stone-400 mb-1.5 block">BPM</label>
-            <input id="input-bpm" type="text" placeholder="120" oninput="autoSaveField()" class="w-full bg-stone-950 border border-stone-800 rounded-xl px-2 py-2 text-xs font-bold text-stone-200 focus:outline-none focus:border-stone-600 transition">
+            <!-- 🔢 專為純數字輸入優化的 BPM 欄位 -->
+            <input id="input-bpm" type="number" inputmode="numeric" pattern="[0-9]*" placeholder="120" oninput="autoSaveField()" class="w-full bg-stone-950 border border-stone-800 rounded-xl px-2 py-2 text-xs font-bold text-stone-200 focus:outline-none focus:border-stone-600 transition">
           </div>
         </div>
 
@@ -393,7 +413,7 @@
     let transposeOffset = 0;
     let toastTimer = null;
 
-    // ↩️ 歷史紀錄 (Undo History) 陣列
+    // ↩️ 歷史紀錄 (Undo History)
     let undoHistory = [];
 
     let customChords = [
@@ -526,17 +546,15 @@
       window.scrollTo(0, currentScroll);
     }
 
-    // 💾 紀錄歷史狀態（用於復原）
     function pushUndoState() {
       const textarea = document.getElementById('input-lyrics');
       if (!textarea) return;
       if (undoHistory.length === 0 || undoHistory[undoHistory.length - 1] !== textarea.value) {
         undoHistory.push(textarea.value);
-        if (undoHistory.length > 20) undoHistory.shift(); // 最多保留 20 步
+        if (undoHistory.length > 20) undoHistory.shift();
       }
     }
 
-    // ↩️ 執行復原功能
     function undoAction() {
       if (undoHistory.length === 0) {
         showToast("沒有上一步了！");
@@ -758,7 +776,7 @@
     }
 
     function insertChord(chordText) {
-      pushUndoState(); // 紀錄復原點
+      pushUndoState();
       const textarea = document.getElementById('input-lyrics');
       const currentWindowScroll = window.scrollY || document.documentElement.scrollTop;
       const start = textarea.selectionStart;
@@ -778,19 +796,13 @@
     function renderTagsList() {
       const container = document.getElementById('tags-list-container');
       
-      // 🖍️ 螢光筆按鈕 + ↩️ 復原按鈕
+      // 🖍️ 螢光筆按鈕
       const toolbarBtns = `
         <button 
           onclick="applyHighlight()"
           class="bg-amber-950/60 hover:bg-amber-900 text-amber-300 font-bold active:scale-95 text-xs px-3 py-1.5 rounded-lg border border-amber-700/60 transition flex items-center gap-1 shadow-sm"
         >
           🖍️ 螢光筆
-        </button>
-        <button 
-          onclick="undoAction()"
-          class="bg-stone-800 hover:bg-stone-700 text-stone-200 font-bold active:scale-95 text-xs px-3 py-1.5 rounded-lg border border-stone-700 transition flex items-center gap-1 shadow-sm"
-        >
-          ↩️ 復原
         </button>
       `;
 
@@ -823,7 +835,7 @@
         return;
       }
 
-      pushUndoState(); // 紀錄復原點
+      pushUndoState();
 
       const selectedText = text.substring(start, end);
       const cleanText = selectedText.replace(/<\/?mark>/g, '');
@@ -970,7 +982,7 @@
     function switchTab(tIdx) {
       if (isScrolling) toggleLiveScroll();
       resetTranspose();
-      undoHistory = []; // 切換分頁時清空歷史紀錄
+      undoHistory = [];
       activeTabIndex = tIdx;
       renderTabs();
       renderCurrentTabSong();
@@ -1162,7 +1174,7 @@
         const isTag = customTags.some(tag => trimmed.includes(tag.replace(/[\u{1F300}-\u{1F9FF}]/u, '').trim()));
 
         if ((hasEmoji || isTag) && !trimmed.includes('[')) {
-          return `<div class="stage-tag text-emerald-400 font-serif-tc font-semibold ${isLive ? 'text-xl md:text-2xl py-1' : 'text-lg py-0.5'} flex items-center gap-1.5">${trimmed}</div>`;
+          return `<div class="stage-tag text-emerald-400 font-serif-tc font-bold ${isLive ? 'text-2xl md:text-4xl py-2' : 'text-xl py-1'} flex items-center gap-1.5">${trimmed}</div>`;
         }
 
         let lineHtml = '<div class="flex flex-wrap items-end gap-x-3.5 my-2">';
@@ -1195,7 +1207,7 @@
     }
 
     function insertTag(tagText) {
-      pushUndoState(); // 紀錄復原點
+      pushUndoState();
       const textarea = document.getElementById('input-lyrics');
       const currentWindowScroll = window.scrollY || document.documentElement.scrollTop;
       const start = textarea.selectionStart;
