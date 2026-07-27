@@ -329,7 +329,7 @@
             </label>
             <span id="tag-hint-text" class="text-[10px] text-stone-600">（點擊標籤直接插入）</span>
           </div>
-          <div id="tags-list-container" class="flex flex-wrap gap-2 max-h-40 overflow-y-auto p-3 bg-stone-950/80 rounded-xl border border-stone-800/80 mb-3">
+          <div id="tags-list-container" class="flex flex-wrap gap-2 max-h-40 overflow-y-auto p-3 bg-stone-950/80 rounded-xl border border-stone-800/80 mb-3 relative">
           </div>
           <div class="flex gap-2">
             <input id="custom-tag-input" type="text" placeholder="輸入自訂標記 (如: 🎸 吉他獨奏)..." class="flex-1 bg-stone-950 border border-stone-800 rounded-xl px-3 py-2 text-xs text-stone-200 focus:outline-none focus:border-stone-600">
@@ -905,7 +905,7 @@
       if (isTagEditMode) {
         btnText.innerText = "完成";
         editBtn.className = "bg-amber-600 hover:bg-amber-500 text-zinc-950 font-bold px-2 py-0.5 rounded-md text-[10px] flex items-center gap-1 transition shadow-sm";
-        if (hintText) hintText.innerText = "（拖曳標籤可調整順序、點 ✕ 刪除）";
+        if (hintText) hintText.innerText = "（按住並左右拖曳調整順序、點 ✕ 刪除）";
       } else {
         btnText.innerText = "編輯標籤";
         editBtn.className = "bg-stone-800 hover:bg-stone-700 text-amber-200 px-2 py-0.5 rounded-md border border-stone-700 text-[10px] flex items-center gap-1 transition";
@@ -914,7 +914,7 @@
       renderTagsList();
     }
 
-    // 🏷️ 渲染標籤區塊（僅在編輯模式下啟用拖曳與刪除）
+    // 🏷️ 渲染標籤區塊（支援滑鼠與手機觸控直接拖曳排序）
     function renderTagsList() {
       const container = document.getElementById('tags-list-container');
       if (!container) return;
@@ -930,21 +930,24 @@
 
       const tagsHTML = customTags.map((tag, idx) => {
         if (isTagEditMode) {
-          // 編輯模式：具備 draggable 屬性供拖曳排序，並顯示 ✕ 按鈕
+          // 編輯模式：同時綁定滑鼠與觸控移動事件，完美支援電腦與手機拖曳
           return `
             <div 
               draggable="true"
               ondragstart="onTagDragStart(event, ${idx})"
               ondragover="onTagDragOver(event)"
               ondrop="onTagDrop(event, ${idx})"
-              class="flex items-center gap-1.5 bg-stone-900 border border-amber-500/50 rounded-lg px-2.5 py-1.5 text-xs text-stone-200 cursor-grab active:cursor-grabbing select-none"
+              ontouchstart="onTagTouchStart(event, ${idx})"
+              ontouchmove="onTagTouchMove(event)"
+              ontouchend="onTagTouchEnd(event)"
+              class="tag-item flex items-center gap-1.5 bg-stone-900 border border-amber-500/50 rounded-lg px-2.5 py-1.5 text-xs text-stone-200 cursor-grab active:cursor-grabbing select-none"
+              data-index="${idx}"
             >
-              <span class="max-w-[100px] truncate">${tag}</span>
+              <span class="max-w-[100px] truncate pointer-events-none">${tag}</span>
               <button onclick="event.stopPropagation(); deleteCustomTag(${idx})" class="text-rose-400 hover:text-rose-200 px-1 font-bold text-xs" title="刪除">✕</button>
             </div>
           `;
         } else {
-          // 一般模式：不可拖曳，點擊直接插入歌詞
           return `
             <button 
               onclick="insertTag('${tag}')"
@@ -962,6 +965,7 @@
 
     let draggedTagIndex = null;
 
+    // 滑鼠拖曳排序
     function onTagDragStart(e, index) {
       draggedTagIndex = index;
       e.dataTransfer.effectAllowed = 'move';
@@ -984,6 +988,40 @@
       if (currentUser) getUserDbRef('custom_tags').set(customTags);
       renderTagsList();
       showToast("標籤順序已更新");
+    }
+
+    // 📱 手機觸控拖曳排序支援
+    let touchDraggedIndex = null;
+
+    function onTagTouchStart(e, index) {
+      touchDraggedIndex = index;
+    }
+
+    function onTagTouchMove(e) {
+      e.preventDefault(); // 防止頁面上下滾動
+      const touch = e.touches[0];
+      const targetElement = document.elementFromPoint(touch.clientX, touch.clientY);
+      if (!targetElement) return;
+
+      const tagItem = targetElement.closest('.tag-item');
+      if (tagItem) {
+        const targetIndex = parseInt(tagItem.getAttribute('data-index'));
+        if (!isNaN(targetIndex) && touchDraggedIndex !== null && touchDraggedIndex !== targetIndex) {
+          const movedTag = customTags.splice(touchDraggedIndex, 1)[0];
+          customTags.splice(targetIndex, 0, movedTag);
+          touchDraggedIndex = targetIndex;
+          renderTagsList();
+        }
+      }
+    }
+
+    function onTagTouchEnd(e) {
+      if (touchDraggedIndex !== null) {
+        touchDraggedIndex = null;
+        saveLocalCache();
+        if (currentUser) getUserDbRef('custom_tags').set(customTags);
+        showToast("標籤順序已更新");
+      }
     }
 
     function deleteCustomTag(index) {
