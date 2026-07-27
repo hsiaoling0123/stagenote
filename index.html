@@ -16,6 +16,7 @@
   <script src="https://unpkg.com/lucide@latest"></script>
   
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;600;900&display=swap');
@@ -81,6 +82,29 @@
 </head>
 <body class="bg-zinc-950 text-stone-200 min-h-screen p-4 md:p-8 pb-16 font-sans select-none antialiased">
 
+  <!-- 🔐 未登入時的登入蓋版 Modal -->
+  <div id="login-overlay" class="fixed inset-0 bg-zinc-950/95 backdrop-blur-md z-[20000] flex flex-col items-center justify-center p-6 text-center">
+    <div class="bg-stone-900 border border-stone-800 rounded-3xl p-8 max-w-sm w-full shadow-2xl flex flex-col items-center gap-6">
+      <div class="w-16 h-16 rounded-full bg-stone-800 border border-stone-700 flex items-center justify-center text-amber-200/90 shadow-inner">
+        <i data-lucide="disc" class="w-8 h-8"></i>
+      </div>
+      <div>
+        <h2 class="text-2xl font-serif-tc font-bold text-stone-100">StageNote</h2>
+        <p class="text-xs text-stone-400 mt-2 font-serif-tc">登入以同步雲端歌單與專屬設定</p>
+      </div>
+
+      <button onclick="loginWithGoogle()" class="w-full bg-stone-100 hover:bg-white text-zinc-950 font-semibold py-3 px-4 rounded-xl transition active:scale-95 flex items-center justify-center gap-3 shadow-lg text-sm">
+        <svg class="w-4 h-4" viewBox="0 0 24 24">
+          <path fill="#EA4335" d="M12 5c1.6 0 3 .6 4.1 1.6l3.1-3.1C17.3 1.7 14.8 1 12 1 7.5 1 3.7 3.6 1.9 7.3l3.7 2.9C6.5 7.3 9 5 12 5z"/>
+          <path fill="#4285F4" d="M23.5 12.3c0-.8-.1-1.6-.2-2.3H12v4.6h6.5c-.3 1.5-1.1 2.8-2.4 3.7l3.7 2.9c2.2-2 3.7-5 3.7-8.9z"/>
+          <path fill="#FBBC05" d="M5.6 14.8c-.2-.7-.4-1.5-.4-2.3s.2-1.6.4-2.3L1.9 7.3C.7 9.7 0 10.8 0 12.3s.7 2.6 1.9 5l3.7-2.5z"/>
+          <path fill="#34A853" d="M12 23c3.2 0 6-1.1 8-3l-3.7-2.9c-1.1.7-2.5 1.2-4.3 1.2-3 0-5.5-2.3-6.4-5.2L1.9 16C3.7 19.7 7.5 23 12 23z"/>
+        </svg>
+        使用 Google 帳號登入
+      </button>
+    </div>
+  </div>
+
   <!-- 🍞 自動消失的保存提示（Toast） -->
   <div id="toast-message" class="fixed top-6 left-1/2 -translate-x-1/2 bg-emerald-900/90 text-emerald-100 border border-emerald-500/50 px-5 py-2.5 rounded-full text-xs md:text-sm font-semibold tracking-wider shadow-2xl z-[10001] transition-all duration-300 opacity-0 pointer-events-none translate-y-[-10px] flex items-center gap-2">
     <i data-lucide="check-circle" class="w-4 h-4 text-emerald-300"></i>
@@ -106,7 +130,7 @@
 
       <div class="flex items-center gap-1.5 pt-4">
         <span id="loading-ping" class="w-1.5 h-1.5 rounded-full bg-amber-200/80 animate-ping"></span>
-        <span id="loading-text" class="text-[11px] font-mono text-stone-500 tracking-wider">曲庫準備中...</span>
+        <span id="loading-text" class="text-[11px] font-mono text-stone-500 tracking-wider">驗證身份中...</span>
       </div>
     </div>
   </div>
@@ -124,6 +148,9 @@
 
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
+    const auth = firebase.auth();
+
+    let currentUser = null;
 
     const cheerMessages = [
       "今夜的舞台屬於你，放輕鬆享受音樂吧。",
@@ -140,6 +167,21 @@
       const cheerEl = document.getElementById('cheer-message');
       if (cheerEl) cheerEl.innerText = cheerMessages[randomIndex];
     });
+
+    function loginWithGoogle() {
+      const provider = new firebase.auth.GoogleAuthProvider();
+      auth.signInWithPopup(provider).catch((error) => {
+        alert("登入失敗：" + error.message);
+      });
+    }
+
+    function logout() {
+      if (confirm("確定要登出嗎？")) {
+        auth.signOut().then(() => {
+          location.reload();
+        });
+      }
+    }
   </script>
 
   <!-- 常規模式 UI -->
@@ -158,6 +200,15 @@
       </div>
 
       <div class="flex items-center gap-2.5">
+        <!-- 👤 會員頭像/登出按鈕 -->
+        <div id="user-profile-bar" class="hidden flex items-center gap-2 bg-stone-900 px-3 py-1 rounded-full border border-stone-800">
+          <img id="user-avatar" src="" class="w-5 h-5 rounded-full">
+          <span id="user-name" class="text-xs font-medium text-stone-300 max-w-[80px] truncate">用戶</span>
+          <button onclick="logout()" class="text-stone-500 hover:text-rose-400 p-0.5 ml-1 transition" title="登出">
+            <i data-lucide="log-out" class="w-3.5 h-3.5"></i>
+          </button>
+        </div>
+
         <button onclick="toggleChords()" class="bg-stone-900 hover:bg-stone-800 text-stone-300 text-xs font-medium px-4 py-2 rounded-full border border-stone-800 active:scale-95 transition">
           <span id="chord-toggle-text">和弦: 顯</span>
         </button>
@@ -249,7 +300,6 @@
           </div>
           <div>
             <label class="text-[11px] font-serif-tc text-stone-400 mb-1.5 block">BPM</label>
-            <!-- 🔢 專為純數字輸入優化的 BPM 欄位 -->
             <input id="input-bpm" type="number" inputmode="numeric" pattern="[0-9]*" placeholder="120" oninput="autoSaveField()" class="w-full bg-stone-950 border border-stone-800 rounded-xl px-2 py-2 text-xs font-bold text-stone-200 focus:outline-none focus:border-stone-600 transition">
           </div>
         </div>
@@ -412,8 +462,6 @@
 
     let transposeOffset = 0;
     let toastTimer = null;
-
-    // ↩️ 歷史紀錄 (Undo History)
     let undoHistory = [];
 
     let customChords = [
@@ -434,6 +482,11 @@
       "Am", "A#m / Bbm", "Bm", "Cm", "C#m", "Dm", "D#m / Ebm", "Em", "Fm", "F#m", "Gm", "G#m"
     ];
 
+    function getUserDbRef(path) {
+      if (!currentUser) return null;
+      return db.ref(`users/${currentUser.uid}/${path}`);
+    }
+
     function showToast(msg = "已保存！") {
       const toast = document.getElementById('toast-message');
       const toastText = document.getElementById('toast-text');
@@ -452,13 +505,13 @@
 
     function loadLocalCache() {
       try {
-        const localSongs = localStorage.getItem('stagenote_songs');
+        const localSongs = localStorage.getItem(`stagenote_songs_${currentUser ? currentUser.uid : 'guest'}`);
         if (localSongs) songs = JSON.parse(localSongs);
 
-        const localChords = localStorage.getItem('stagenote_chords');
+        const localChords = localStorage.getItem(`stagenote_chords_${currentUser ? currentUser.uid : 'guest'}`);
         if (localChords) customChords = JSON.parse(localChords);
 
-        const localTags = localStorage.getItem('stagenote_tags');
+        const localTags = localStorage.getItem(`stagenote_tags_${currentUser ? currentUser.uid : 'guest'}`);
         if (localTags) customTags = JSON.parse(localTags);
       } catch (e) {
         console.error("讀取本地快取失敗", e);
@@ -467,9 +520,10 @@
 
     function saveLocalCache() {
       try {
-        localStorage.setItem('stagenote_songs', JSON.stringify(songs));
-        localStorage.setItem('stagenote_chords', JSON.stringify(customChords));
-        localStorage.setItem('stagenote_tags', JSON.stringify(customTags));
+        const uid = currentUser ? currentUser.uid : 'guest';
+        localStorage.setItem(`stagenote_songs_${uid}`, JSON.stringify(songs));
+        localStorage.setItem(`stagenote_chords_${uid}`, JSON.stringify(customChords));
+        localStorage.setItem(`stagenote_tags_${uid}`, JSON.stringify(customTags));
       } catch (e) {
         console.error("保存本地快取失敗", e);
       }
@@ -603,15 +657,63 @@
       }
     }
 
+    // 🚀 初始化與會員資料自動搬移邏輯
     window.onload = () => {
       lucide.createIcons();
       initKeySelectOptions();
       initLiveClock();
 
-      loadLocalCache();
-      renderChordsList();
-      renderTagsList();
+      auth.onAuthStateChanged((user) => {
+        if (user) {
+          currentUser = user;
+          document.getElementById('login-overlay').classList.add('hidden');
+          
+          // 顯示個人頭像與名稱
+          const profileBar = document.getElementById('user-profile-bar');
+          if (profileBar) {
+            profileBar.classList.remove('hidden');
+            document.getElementById('user-avatar').src = user.photoURL || '';
+            document.getElementById('user-name').innerText = user.displayName || '用戶';
+          }
 
+          loadLocalCache();
+          renderChordsList();
+          renderTagsList();
+
+          // 📦 資料搬移檢查：如果是第一個登入的帳號，將根目錄的舊歌單移入該帳號
+          db.ref('songs').once('value').then((snapshot) => {
+            const rootSongs = snapshot.val();
+            if (rootSongs) {
+              // 搬移歌曲、和弦、標籤到當前帳號
+              getUserDbRef('songs').set(rootSongs);
+              db.ref('custom_chords').once('value').then((snap) => {
+                if (snap.val()) getUserDbRef('custom_chords').set(snap.val());
+                db.ref('custom_chords').remove();
+              });
+              db.ref('custom_tags').once('value').then((snap) => {
+                if (snap.val()) getUserDbRef('custom_tags').set(snap.val());
+                db.ref('custom_tags').remove();
+              });
+
+              // 刪除根目錄的舊全域資料，完成轉移
+              db.ref('songs').remove();
+              showToast("已自動將原有歌單轉移至您的帳號！");
+            }
+          });
+
+          // 綁定個人的 Firebase 數據監聽
+          bindUserFirebaseData();
+
+        } else {
+          // 未登入，彈出登入 Overlay
+          currentUser = null;
+          document.getElementById('login-overlay').classList.remove('hidden');
+          hideLoadingSplash();
+        }
+      });
+    };
+
+    function bindUserFirebaseData() {
       const connectedRef = db.ref(".info/connected");
       connectedRef.on("value", (snap) => {
         const syncEl = document.getElementById('sync-status');
@@ -632,7 +734,7 @@
         }
       });
 
-      db.ref('custom_chords').on('value', (snapshot) => {
+      getUserDbRef('custom_chords').on('value', (snapshot) => {
         const data = snapshot.val();
         if (data) {
           customChords = Array.isArray(data) ? data : Object.values(data);
@@ -641,7 +743,7 @@
         renderChordsList();
       });
 
-      db.ref('custom_tags').on('value', (snapshot) => {
+      getUserDbRef('custom_tags').on('value', (snapshot) => {
         const data = snapshot.val();
         if (data) {
           customTags = Array.isArray(data) ? data : Object.values(data);
@@ -650,7 +752,7 @@
         renderTagsList();
       });
 
-      db.ref('songs').on('value', (snapshot) => {
+      getUserDbRef('songs').on('value', (snapshot) => {
         const data = snapshot.val();
         if (data) {
           songs = Array.isArray(data) ? data : Object.values(data);
@@ -666,7 +768,7 @@
             viewCount: 1,
             lyrics: `作詞：潘雲安  作曲：潘雲安\n\n[C]我肯定在幾百年前就說過愛你\n\n[G]只是你忘了\n\n[Am]我也沒想起\n\n⭐ 重點\n\n[F]我肯定在幾百年前就說過愛你`
           }];
-          db.ref('songs').set(songs);
+          getUserDbRef('songs').set(songs);
           saveLocalCache();
         }
         
@@ -675,7 +777,7 @@
         renderCurrentTabSong();
         hideLoadingSplash();
       });
-    };
+    }
 
     function updateSongSelectOptions() {
       const select = document.getElementById('song-select');
@@ -700,8 +802,8 @@
       if (songs[index]) {
         songs[index].viewCount = (songs[index].viewCount || 0) + 1;
         saveLocalCache();
-        if (navigator.onLine) {
-          db.ref(`songs/${index}/viewCount`).set(songs[index].viewCount);
+        if (navigator.onLine && currentUser) {
+          getUserDbRef(`songs/${index}/viewCount`).set(songs[index].viewCount);
         }
       }
     }
@@ -758,7 +860,7 @@
       if (confirm(`確定要移除快捷和弦 『${chord}』 嗎？`)) {
         customChords.splice(index, 1);
         saveLocalCache();
-        db.ref('custom_chords').set(customChords);
+        if (currentUser) getUserDbRef('custom_chords').set(customChords);
       }
     }
 
@@ -770,7 +872,7 @@
       if (!customChords.includes(newChord)) {
         customChords.push(newChord);
         saveLocalCache();
-        db.ref('custom_chords').set(customChords);
+        if (currentUser) getUserDbRef('custom_chords').set(customChords);
       }
       input.value = '';
     }
@@ -796,7 +898,6 @@
     function renderTagsList() {
       const container = document.getElementById('tags-list-container');
       
-      // 🖍️ 螢光筆按鈕
       const toolbarBtns = `
         <button 
           onclick="applyHighlight()"
@@ -886,7 +987,7 @@
       if (confirm(`確定要移除標記 『${tag}』 嗎？`)) {
         customTags.splice(index, 1);
         saveLocalCache();
-        db.ref('custom_tags').set(customTags);
+        if (currentUser) getUserDbRef('custom_tags').set(customTags);
       }
     }
 
@@ -898,7 +999,7 @@
       if (!customTags.includes(newTag)) {
         customTags.push(newTag);
         saveLocalCache();
-        db.ref('custom_tags').set(customTags);
+        if (currentUser) getUserDbRef('custom_tags').set(customTags);
       }
       input.value = '';
     }
@@ -1329,8 +1430,8 @@
         showToast("已保存！");
       };
 
-      if (navigator.onLine) {
-        db.ref('songs').set(songs).then(onSavedComplete);
+      if (navigator.onLine && currentUser) {
+        getUserDbRef('songs').set(songs).then(onSavedComplete);
       } else {
         onSavedComplete();
       }
