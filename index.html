@@ -889,7 +889,6 @@
       window.scrollTo(0, currentWindowScroll);
     }
 
-    // 🏷️ 渲染標籤區塊（支援 HTML5 拖曳排序、點擊插入、長安或叉叉刪除）
     function renderTagsList() {
       const container = document.getElementById('tags-list-container');
       
@@ -1062,7 +1061,7 @@
           </div>
         `;
       }).join('') + `
-        <button onclick="createNewSongWithNewTab()" class="bg-stone-900 hover:bg-stone-800 text-amber-200/80 p-1.5 rounded-full border border-stone-800 shrink-0 flex items-center justify-center transition active:scale-95" title="新增分頁">
+        <button onclick="clickAddTab()" class="bg-stone-900 hover:bg-stone-800 text-amber-200/80 p-1.5 rounded-full border border-stone-800 shrink-0 flex items-center justify-center transition active:scale-95" title="選擇歌曲並新增分頁">
           <i data-lucide="plus" class="w-4 h-4"></i>
         </button>
       `;
@@ -1081,17 +1080,9 @@
       renderCurrentTabSong();
     }
 
-    function createNewSongWithNewTab() {
-      const currentSongIndex = tabs[activeTabIndex];
-      if (currentSongIndex === 'new') {
-        showToast("目前已經在新增分頁中！");
-        return;
-      }
-
-      tabs.push('new');
-      activeTabIndex = tabs.length - 1;
-      renderTabs();
-      openNewSongForm();
+    // 🎯 點擊分頁的 + 按鈕時直接叫出曲目檢索視窗
+    function clickAddTab() {
+      toggleSearchModal();
     }
 
     function closeTab(tIdx) {
@@ -1180,7 +1171,17 @@
 
     function selectSearchResult(index) {
       incrementSongViewCount(index);
-      tabs[activeTabIndex] = index;
+      
+      // 如果目前分頁已經有歌，點選檢索結果時自動幫使用者「開新分頁」並載入該歌
+      const currentSongIndex = tabs[activeTabIndex];
+      if (currentSongIndex !== 'new' && songs[currentSongIndex]) {
+        tabs.push(index);
+        activeTabIndex = tabs.length - 1;
+      } else {
+        // 如果目前分頁是空白的，直接在當前分頁載入
+        tabs[activeTabIndex] = index;
+      }
+
       renderTabs();
       renderSong(songs[index]);
       const select = document.getElementById('song-select');
