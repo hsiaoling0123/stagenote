@@ -59,66 +59,14 @@
       height: 100vh !important;
       z-index: 9999 !important;
     }
-    /* 🖍️ 螢光筆高亮樣式 */
+    /* 🖍️ 演出模式下的螢光筆高亮樣式 */
     .highlight-mark {
       background-color: rgba(251, 191, 36, 0.4);
       color: #fef08a;
-      padding: 0px 4px;
+      padding: 0px 6px;
       border-radius: 4px;
       border-bottom: 2px solid #f59e0b;
-      display: inline;
-    }
-    /* 🎨 雙層編輯區樣式對齊 */
-    .editor-container {
-      position: relative;
-      width: 100%;
-    }
-    .editor-backdrop, .editor-textarea {
-      font-family: 'Noto Serif TC', Georgia, serif;
-      font-size: 1.25rem; /* text-xl */
-      line-height: 1.75;  /* leading-relaxed */
-      letter-spacing: 0.025em; /* tracking-wide */
-      padding: 0;
-      margin: 0;
-      white-space: pre-wrap;
-      word-wrap: break-word;
-      border: none;
-      outline: none;
-      box-sizing: border-box;
-      width: 100%;
-    }
-    @media (min-width: 768px) {
-      .editor-backdrop, .editor-textarea {
-        font-size: 1.5rem; /* text-2xl */
-      }
-    }
-    .editor-backdrop {
-      position: absolute;
-      top: 0;
-      left: 0;
-      height: 100%;
-      color: transparent;
-      pointer-events: none;
-      overflow: hidden;
-      z-index: 1;
-    }
-    .editor-backdrop .normal-text {
-      color: #e7e5e4; /* stone-200 */
-    }
-    .editor-backdrop .tag-text {
-      color: #34d399; /* emerald-400 */
-      font-weight: 600;
-    }
-    .editor-backdrop .chord-text {
-      color: #fde047; /* amber-300 */
-      font-weight: 600;
-    }
-    .editor-textarea {
-      position: relative;
-      z-index: 2;
-      background: transparent;
-      color: transparent;
-      caret-color: #f3f4f6; /* 光標維持看得見 */
+      display: inline-block;
     }
   </style>
 </head>
@@ -240,15 +188,12 @@
           </div>
         </div>
 
-        <!-- 🎨 雙層即時上色編輯器容器 -->
+        <!-- 🎯 單層原生 Textarea：游標完全精準 -->
         <div class="bg-stone-900/30 border border-stone-800/60 rounded-2xl p-6 shadow-inner relative focus-within:border-stone-700 transition">
           <div class="text-[11px] text-stone-500 mb-3 font-serif-tc flex justify-between items-center tracking-widest">
             <span>✎ 點擊下方隨心編輯歌詞 (支援 [C] 和弦與 *螢光筆* 標記)</span>
           </div>
-          <div class="editor-container">
-            <div id="editor-backdrop" class="editor-backdrop"></div>
-            <textarea id="input-lyrics" oninput="handleEditorInput(this)" class="auto-expand-textarea editor-textarea placeholder-stone-700" placeholder="寫下你的歌詞..."></textarea>
-          </div>
+          <textarea id="input-lyrics" oninput="handleEditorInput(this)" class="auto-expand-textarea w-full bg-transparent text-xl md:text-2xl text-stone-200 font-serif-tc leading-relaxed tracking-wide focus:outline-none placeholder-stone-700" placeholder="寫下你的歌詞..."></textarea>
         </div>
       </div>
 
@@ -448,6 +393,9 @@
     let transposeOffset = 0;
     let toastTimer = null;
 
+    // ↩️ 歷史紀錄 (Undo History) 陣列
+    let undoHistory = [];
+
     let customChords = [
       'C', 'D', 'E', 'F', 'G', 'A', 'B',
       'Cm', 'Dm', 'Em', 'Fm', 'Gm', 'Am', 'Bm',
@@ -466,7 +414,6 @@
       "Am", "A#m / Bbm", "Bm", "Cm", "C#m", "Dm", "D#m / Ebm", "Em", "Fm", "F#m", "Gm", "G#m"
     ];
 
-    // 🍞 顯示自動消失的 Toast 通知
     function showToast(msg = "已保存！") {
       const toast = document.getElementById('toast-message');
       const toastText = document.getElementById('toast-text');
@@ -480,7 +427,7 @@
       toastTimer = setTimeout(() => {
         toast.classList.remove('opacity-100', 'translate-y-0');
         toast.classList.add('opacity-0', 'pointer-events-none', 'translate-y-[-10px]');
-      }, 1500); // 1.5 秒後自動消失
+      }, 1500);
     }
 
     function loadLocalCache() {
@@ -575,59 +522,37 @@
     function adjustTextareaHeight(el) {
       const currentScroll = window.scrollY || document.documentElement.scrollTop;
       el.style.height = 'auto';
-      const newHeight = el.scrollHeight + 'px';
-      el.style.height = newHeight;
-      const backdrop = document.getElementById('editor-backdrop');
-      if (backdrop) backdrop.style.height = newHeight;
+      el.style.height = el.scrollHeight + 'px';
       window.scrollTo(0, currentScroll);
+    }
+
+    // 💾 紀錄歷史狀態（用於復原）
+    function pushUndoState() {
+      const textarea = document.getElementById('input-lyrics');
+      if (!textarea) return;
+      if (undoHistory.length === 0 || undoHistory[undoHistory.length - 1] !== textarea.value) {
+        undoHistory.push(textarea.value);
+        if (undoHistory.length > 20) undoHistory.shift(); // 最多保留 20 步
+      }
+    }
+
+    // ↩️ 執行復原功能
+    function undoAction() {
+      if (undoHistory.length === 0) {
+        showToast("沒有上一步了！");
+        return;
+      }
+      const textarea = document.getElementById('input-lyrics');
+      const lastState = undoHistory.pop();
+      textarea.value = lastState;
+      adjustTextareaHeight(textarea);
+      autoSaveLyrics();
+      showToast("已復原上一步");
     }
 
     function handleEditorInput(el) {
       autoSaveLyrics();
       adjustTextareaHeight(el);
-      renderEditorBackdrop(el.value);
-    }
-
-    function renderEditorBackdrop(text) {
-      const backdrop = document.getElementById('editor-backdrop');
-      if (!backdrop) return;
-
-      if (!text) {
-        backdrop.innerHTML = '';
-        return;
-      }
-
-      let cleanText = text.replace(/<mark>(.*?)<\/mark>/g, '*$1*');
-
-      const lines = cleanText.split('\n');
-      const renderedLines = lines.map(line => {
-        if (!line) return '<br>';
-
-        const trimmed = line.trim();
-        const hasEmoji = /[\u{1F300}-\u{1F9FF}]/u.test(trimmed);
-        const isTag = customTags.some(tag => trimmed.includes(tag.replace(/[\u{1F300}-\u{1F9FF}]/u, '').trim()));
-
-        if ((hasEmoji || isTag) && !trimmed.includes('[')) {
-          return `<span class="tag-text">${escapeHtml(line)}</span>`;
-        }
-
-        let escaped = escapeHtml(line);
-        escaped = escaped.replace(/\*(.*?)\*/g, '<span class="highlight-mark normal-text">$1</span>');
-        escaped = escaped.replace(/\[(.*?)\]/g, '<span class="chord-text">[$1]</span>');
-
-        return `<span class="normal-text">${escaped}</span>`;
-      });
-
-      backdrop.innerHTML = renderedLines.join('<br>') + '<br>';
-    }
-
-    function escapeHtml(str) {
-      return str
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;")
-        .replace(/'/g, "&#039;");
     }
 
     function hideLoadingSplash() {
@@ -833,6 +758,7 @@
     }
 
     function insertChord(chordText) {
+      pushUndoState(); // 紀錄復原點
       const textarea = document.getElementById('input-lyrics');
       const currentWindowScroll = window.scrollY || document.documentElement.scrollTop;
       const start = textarea.selectionStart;
@@ -852,12 +778,19 @@
     function renderTagsList() {
       const container = document.getElementById('tags-list-container');
       
-      const highlightBtn = `
+      // 🖍️ 螢光筆按鈕 + ↩️ 復原按鈕
+      const toolbarBtns = `
         <button 
           onclick="applyHighlight()"
           class="bg-amber-950/60 hover:bg-amber-900 text-amber-300 font-bold active:scale-95 text-xs px-3 py-1.5 rounded-lg border border-amber-700/60 transition flex items-center gap-1 shadow-sm"
         >
           🖍️ 螢光筆
+        </button>
+        <button 
+          onclick="undoAction()"
+          class="bg-stone-800 hover:bg-stone-700 text-stone-200 font-bold active:scale-95 text-xs px-3 py-1.5 rounded-lg border border-stone-700 transition flex items-center gap-1 shadow-sm"
+        >
+          ↩️ 復原
         </button>
       `;
 
@@ -875,7 +808,7 @@
         </button>
       `).join('');
 
-      container.innerHTML = highlightBtn + tagsHTML;
+      container.innerHTML = toolbarBtns + tagsHTML;
     }
 
     function applyHighlight() {
@@ -889,6 +822,8 @@
         showToast("請先框選想要高亮的文字！");
         return;
       }
+
+      pushUndoState(); // 紀錄復原點
 
       const selectedText = text.substring(start, end);
       const cleanText = selectedText.replace(/<\/?mark>/g, '');
@@ -1035,6 +970,7 @@
     function switchTab(tIdx) {
       if (isScrolling) toggleLiveScroll();
       resetTranspose();
+      undoHistory = []; // 切換分頁時清空歷史紀錄
       activeTabIndex = tIdx;
       renderTabs();
       renderCurrentTabSong();
@@ -1259,6 +1195,7 @@
     }
 
     function insertTag(tagText) {
+      pushUndoState(); // 紀錄復原點
       const textarea = document.getElementById('input-lyrics');
       const currentWindowScroll = window.scrollY || document.documentElement.scrollTop;
       const start = textarea.selectionStart;
@@ -1343,7 +1280,6 @@
       }
     }
 
-    // 💾 保存作品並觸發 1.5 秒自動消失的 Toast 通知
     function saveCurrentSong() {
       const title = document.getElementById('input-title').value || '未命名歌曲';
       const artist = document.getElementById('input-artist').value || '-';
@@ -1378,7 +1314,7 @@
       const onSavedComplete = () => {
         renderTabs();
         renderCurrentTabSong();
-        showToast("已保存！"); // 🎉 觸發自動消失浮動提醒
+        showToast("已保存！");
       };
 
       if (navigator.onLine) {
