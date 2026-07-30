@@ -1176,6 +1176,16 @@
       toggleSearchModal();
     }
 
+    function createNewSongWithNewTab() {
+      if (isScrolling) toggleLiveScroll();
+      resetTranspose();
+      undoHistory = [];
+      tabs.push('new');
+      activeTabIndex = tabs.length - 1;
+      renderTabs();
+      openNewSongForm();
+    }
+
     function closeTab(tIdx) {
       if (tabs.length <= 1) return;
       
